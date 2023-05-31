@@ -2,8 +2,9 @@
 ;; Integrantes del grupo
 ;; Juan Camilo Ortiz Gonzalez - 2023921
 ;; William Velasco Muñoz - 2042577
+;; John Freddy Riascos Granja - 
 ;;
-;; Link al GitHub: https://github.com/juancortizgonz/FLP_Taller_3
+;; Link al GitHub: https://github.com/juancortizgonz/FLP_Proyecto
 
 ;------------------------------------------------------------------------------------
 ;;;;; Interpretador
@@ -12,16 +13,41 @@
 ;;
 ;;  <programa>       ::= <expresion>
 ;;                      <un-programa (exp)>
-;;  <expresion>    ::= <numero>
+;;                   ::= {<class-decl>}* <expresion>
+;;                       <un-programa-oo>
+;;  <expresion>     ::= <numero>
 ;;                      <numero-lit (num)>
-;;                  ::= "$" <texto>
+;;                  ::= <flotante>
+;;                      <flotante-lit (num)>
+;;                  ::= "$" <texto> "$"
 ;;                      <texto-lit (txt)>
+;;                  ::= "'" letter "'"
+;;                      <caracter-lit (char)>
+;;                  ::= "null"
+;;                      <null>
 ;;                  ::= <identificador>
-;;                      <var-exp (id)>
+;;                      <id-exp (id)>
+;;                  ::= var <identificador> = <expresion>
+;;                      <var-exp (id exp)>
+;;                  ::= const <identificador> = <expresion>
+;;                      <const-exp (id exp)>
+;;                  ::= & <identificador>
+;;                      <ref-exp (id)>
+;;                  ::= print (<expresion>)
+;;                      <imprimir-exp (exp)>
+;;                  ::= <exp-bool>
+;;                      <boolean-exp (exp-bool)>
+;;                  ::= [<primitiva> {<expresion>}*(,)]
+;;                      <primitiva-exp (prim rands)>
 ;;                  ::= "(" <expresion> <primitiva-binaria> <expresion> ")"
 ;;                      <primapp-bin-exp (exp1 prim-binaria exp2)>
 ;;                  ::= <primitiva-unaria> "(" <expresion> ")"
 ;;                      primapp-un-exp (prim-unaria exp)
+;;                  ::= list [{<expresion>}*(,)]
+;;                      <lista-exp (body)>
+;;                  ::= vector ({<expresion>}*(,))
+;;                      <vector-exp (body)>
+;;                  ::= log ({<identificador>}*("->"))
 ;;                  ::= let "{" {identifier = <expression>}(;)* "}" in <expresion>
 ;;                      <let-exp (ids rands body)>
 ;;                  ::= function <identificador> "(" {<identificador>}*(,) ")" "{" {<expresion>}*(;) "}"
@@ -34,10 +60,64 @@
 ;;                      variableLocal-exp (ids exps cuerpo)
 ;;                  ::= procedure (<identificador>*',') do "{" <expresion> "}"
 ;;                      <procedimiento-exp (ids cuerpo)>
-;;                  ::= "evaluate" expresion (expresion ",")*
+;;                  ::= "evaluate" {expresion (expresion ",")*}
 ;;                      <app-exp (exp exps)>
 ;;                  ::= letrec "{" {identificador ({identificador}*(,)) "=" <expresion>}* "}" in <expression>
 ;;                      <letrec-exp proc-names ids bodies body-letrec>
+;;                  ::= begin {<expresion>; {<expresion>}*(;)}
+;;                      <begin-exp (exps)>
+;;                  ::= while(<expresion>) {<expresion>}
+;;                      <while-loop-exp (cond-exp body)>
+;;                  ::= for <identificador> = <expresion> to <expresion> {<expresion>}
+;;                      <for-loop-exp (var-id val-var reach-val body)>
+;;                  ::= set! <identificador> = <expresion>
+;;                      <set-exp (id body)>
+;;                  ::= call <identificador>()
+;;                      <llamado-funcion-exp>
+;;                  ::= new <identificador> ({<expresion>}*(,))
+;;                      <nuevo-objeto-exp (id params)>
+;;                  ::= send <expresion> <identificador> ({expresion}*(,))
+;;                      <metodo-app-exp (exp id params)>
+;;                  ::= super <identificador> ({<expresion>}*(,))
+;;                      <super-llamado-exp (id params)>
+;;                  ::= class <identificador> extends <identificador> ({<identificador>*(,)}) {{field <identificador>}*(;) {<method-decl>}*(;)}
+;;                      <declaracion-clase-exp (id super-id params ids-field method-decls)>
+;;                  ::= X8 ({<expresion>*(,)})
+;;                      <hexadecimal-base8-exp>
+;;                  ::= X16 ({<expresion>*(,)})
+;;                      <hexadecimal-base16-exp>
+;;                  ::= X32 ({<expresion>*(,)})
+;;                      <hexadecimal-base32-exp>
+;;  <exp-bool> ::= <boolean>
+;;                 <exp-bool-simple (bool)>
+;;             ::= <operacion-binaria-bool> (<expresion>, <expresion>)
+;;                 <exp-bool-bin (prim exp1 exp2)>
+;;             ::= <operacion-unaria-bool> (<expresion>)
+;;                 <exp-bool-un (prim exp)>
+;;             ::= <predicado-primitiva> (<expresion>, <expresion>)
+;;                 <predicado-primitiva-bool (prim exp1 exp2)>
+;;  <boolean> ::= "True"
+;;                <true-boolean>
+;;            ::= "False"
+;;                <false-boolean>
+;;  <predicado-primitiva> ::= ">"
+;;                            <mayor-bool>
+;;                        ::= ">="
+;;                            <mayor-igual-bool>
+;;                        ::= "<"
+;;                            <menor-bool>
+;;                        ::= "<="
+;;                            <menor-igual-bool>
+;;                        ::= "=="
+;;                            <igual-bool>
+;;                        ::= "!="
+;;                            <diferente-bool>
+;;                        ::= "and"
+;;                            <and-primitiva-bool>
+;;                        ::= "or"
+;;                            <or-primitiva-bool>
+;;                        ::= "not"
+;;                            <not-primitiva-bool>
 ;;  <primitiva-binaria> ::= "+"
 ;;                          <primitiva-suma>
 ;;                      ::= "-"
@@ -46,14 +126,32 @@
 ;;                          <primitiva-multi>
 ;;                      ::= "/"
 ;;                          <primitiva-div>
+;;                      ::= "%"
+;;                          <primitiva-mod>
 ;;                      ::= "concat"
 ;;                          <primitiva-concat>
-;;  <primitiva-unaria> ::= "longitud"
+;;  <primitiva-unaria> ::= "length"
 ;;                         <primitiva-longitud>
 ;;                     ::= "add1"
 ;;                         <primitiva-add1>
 ;;                     ::= "sub1"
 ;;                         <primitiva-sub1>
+;;  <primitiva> ::= empty-list? <lista-vacia?-prim>
+;;              ::= empty <lista-vacio-prim>
+;;              ::= list? <es-lista?-prim>
+;;              ::= new List() <crear-lista-prim>
+;;              ::= get-head <cabeza-lista-prim>
+;;              ::= tail <cola-lista-prim>
+;;              ::= append <append-lista-prim>
+;;              ::= vector? <es-vector?-prim>
+;;              ::= ref-vector <ref-vector-prim>
+;;              ::= set-vector <set-vector-prim>
+;;              ::= new Vect() <crear-vector-prim>
+;;              ::= log? <es-registro?-prim>
+;;              ::= ref-log <ref-registro-prim>
+;;              ::= set-log <set-registro-prim>
+;;              ::= new Log() <crear-registro-prim>
+;;
 ;******************************************************************************************
 
 ;******************************************************************************************
@@ -196,7 +294,7 @@
                       crear-lista-prim)
     (primitiva ("get-head")
                       cabeza-lista-prim)
-    (primitivaa ("get-tail")
+    (primitiva ("get-tail")
                       cola-lista-prim)
     (primitiva ("append")
                       append-lista-prim)
