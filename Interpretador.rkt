@@ -1,384 +1,281 @@
 #lang eopl
-;; Integrantes del grupo
-;; Juan Camilo Ortiz Gonzalez - 2023921
-;; William Velasco Muñoz - 2042577
-;; John Freddy Riascos Granja - 
+
+; Proyecto FLP: Mini-Py
+;
+;; Mini-Py es un lenguaje de programación no tipado, con características
+;; de un lenguaje declarativo, imperativo y orientado a objetos.
+;; La sintaxis del lenguaje es una recolección de sintaxis de otros
+;; lenguajes populares como Java, C++ o Python. La mayor parte de la
+;; semantica se realizó teniendo como base Python.
 ;;
-;; Link al GitHub: https://github.com/juancortizgonz/FLP_Proyecto
+;; Toda la documentación y otra información de interés se encuentra en
+;; el archivo README del GitHub.
+;; https://github.com/juancortizgonz/FLP_Proyecto/
 
-;------------------------------------------------------------------------------------
-;;;;; Interpretador
 
-;; La definición BNF para las expresiones del lenguaje:
+; Integrantes del grupo:
+;; Juan Camilo Ortiz G. - 2023921
+;; William Velasco M. - 2042577
+;; John Freddy Riascos G. - #TODO
+;
+;; Profesor: Robinson A. Duque, Ph.D
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Definición de la gramática en Forma Backus-Naur:
 ;;
-;;  <programa>       ::= <expresion>
-;;                      <un-programa (exp)>
-;;                   ::= {<class-decl>}* <expresion>
-;;                       <un-programa-oo>
-;;  <expresion>     ::= <numero>
-;;                      <numero-lit (num)>
-;;                  ::= <flotante>
-;;                      <flotante-lit (num)>
-;;                  ::= "$" <texto> "$"
-;;                      <texto-lit (txt)>
-;;                  ::= "'" letter "'"
-;;                      <caracter-lit (char)>
-;;                  ::= "null"
-;;                      <null>
-;;                  ::= <identificador>
-;;                      <id-exp (id)>
-;;                  ::= var <identificador> = <expresion>
-;;                      <var-exp (id exp)>
-;;                  ::= const <identificador> = <expresion>
-;;                      <const-exp (id exp)>
-;;                  ::= & <identificador>
-;;                      <ref-exp (id)>
-;;                  ::= print (<expresion>)
-;;                      <imprimir-exp (exp)>
-;;                  ::= <exp-bool>
-;;                      <boolean-exp (exp-bool)>
-;;                  ::= [<primitiva> {<expresion>}*(,)]
-;;                      <primitiva-exp (prim rands)>
-;;                  ::= "(" <expresion> <primitiva-binaria> <expresion> ")"
-;;                      <primapp-bin-exp (exp1 prim-binaria exp2)>
-;;                  ::= <primitiva-unaria> "(" <expresion> ")"
-;;                      primapp-un-exp (prim-unaria exp)
-;;                  ::= list [{<expresion>}*(,)]
-;;                      <lista-exp (body)>
-;;                  ::= vector ({<expresion>}*(,))
-;;                      <vector-exp (body)>
-;;                  ::= log ({<identificador>}*("->"))
-;;                  ::= let "{" {identifier = <expression>}(;)* "}" in <expresion>
-;;                      <let-exp (ids rands body)>
-;;                  ::= function <identificador> "(" {<identificador>}*(,) ")" "{" {<expresion>}*(;) "}"
-;;                      <funcion-exp (ids body)>
-;;                  ::= (<expresion> {<expresion>}*)
-;;                      <app-exp proc rands>
-;;                  ::= if "(" <expresion> ")" "{" <expresion> "}" "else" "{" <expresion> "}"
-;;                      <condicional-exp (test-exp true-exp false-exp)>
-;;                  ::= local "(" {<identificador> = <expresion> (;)}* ")" "{" <expresion> "}"
-;;                      variableLocal-exp (ids exps cuerpo)
-;;                  ::= procedure (<identificador>*',') do "{" <expresion> "}"
-;;                      <procedimiento-exp (ids cuerpo)>
-;;                  ::= "evaluate" {expresion (expresion ",")*}
-;;                      <app-exp (exp exps)>
-;;                  ::= letrec "{" {identificador ({identificador}*(,)) "=" <expresion>}* "}" in <expression>
-;;                      <letrec-exp proc-names ids bodies body-letrec>
-;;                  ::= begin {<expresion>; {<expresion>}*(;)}
-;;                      <begin-exp (exps)>
-;;                  ::= while(<expresion>) {<expresion>}
-;;                      <while-loop-exp (cond-exp body)>
-;;                  ::= for <identificador> = <expresion> to <expresion> {<expresion>}
-;;                      <for-loop-exp (var-id val-var reach-val body)>
-;;                  ::= set! <identificador> = <expresion>
-;;                      <set-exp (id body)>
-;;                  ::= call <identificador>()
-;;                      <llamado-funcion-exp>
-;;                  ::= new <identificador> ({<expresion>}*(,))
-;;                      <nuevo-objeto-exp (id params)>
-;;                  ::= send <expresion> <identificador> ({expresion}*(,))
-;;                      <metodo-app-exp (exp id params)>
-;;                  ::= super <identificador> ({<expresion>}*(,))
-;;                      <super-llamado-exp (id params)>
-;;                  ::= class <identificador> extends <identificador> ({<identificador>*(,)}) {{field <identificador>}*(;) {<method-decl>}*(;)}
-;;                      <declaracion-clase-exp (id super-id params ids-field method-decls)>
-;;                  ::= X8 ({<expresion>*(,)})
-;;                      <hexadecimal-base8-exp>
-;;                  ::= X16 ({<expresion>*(,)})
-;;                      <hexadecimal-base16-exp>
-;;                  ::= X32 ({<expresion>*(,)})
-;;                      <hexadecimal-base32-exp>
-;;  <exp-bool> ::= <boolean>
-;;                 <exp-bool-simple (bool)>
-;;             ::= <operacion-binaria-bool> (<expresion>, <expresion>)
-;;                 <exp-bool-bin (prim exp1 exp2)>
-;;             ::= <operacion-unaria-bool> (<expresion>)
-;;                 <exp-bool-un (prim exp)>
-;;             ::= <predicado-primitiva> (<expresion>, <expresion>)
-;;                 <predicado-primitiva-bool (prim exp1 exp2)>
-;;  <boolean> ::= "True"
-;;                <true-boolean>
-;;            ::= "False"
-;;                <false-boolean>
-;;  <predicado-primitiva> ::= ">"
-;;                            <mayor-bool>
-;;                        ::= ">="
-;;                            <mayor-igual-bool>
-;;                        ::= "<"
-;;                            <menor-bool>
-;;                        ::= "<="
-;;                            <menor-igual-bool>
-;;                        ::= "=="
-;;                            <igual-bool>
-;;                        ::= "!="
-;;                            <diferente-bool>
-;;                        ::= "and"
-;;                            <and-primitiva-bool>
-;;                        ::= "or"
-;;                            <or-primitiva-bool>
-;;                        ::= "not"
-;;                            <not-primitiva-bool>
-;;  <primitiva-binaria> ::= "+"
-;;                          <primitiva-suma>
-;;                      ::= "-"
-;;                          <primitiva-resta>
-;;                      ::= "*"
-;;                          <primitiva-multi>
-;;                      ::= "/"
-;;                          <primitiva-div>
-;;                      ::= "%"
-;;                          <primitiva-mod>
-;;                      ::= "concat"
-;;                          <primitiva-concat>
-;;  <primitiva-unaria> ::= "length"
-;;                         <primitiva-longitud>
-;;                     ::= "add1"
-;;                         <primitiva-add1>
-;;                     ::= "sub1"
-;;                         <primitiva-sub1>
-;;  <primitiva> ::= empty-list? <lista-vacia?-prim>
-;;              ::= empty <lista-vacio-prim>
-;;              ::= list? <es-lista?-prim>
-;;              ::= new List() <crear-lista-prim>
-;;              ::= get-head <cabeza-lista-prim>
-;;              ::= tail <cola-lista-prim>
-;;              ::= append <append-lista-prim>
-;;              ::= vector? <es-vector?-prim>
-;;              ::= ref-vector <ref-vector-prim>
-;;              ::= set-vector <set-vector-prim>
-;;              ::= new Vect() <crear-vector-prim>
-;;              ::= log? <es-registro?-prim>
-;;              ::= ref-log <ref-registro-prim>
-;;              ::= set-log <set-registro-prim>
-;;              ::= new Log() <crear-registro-prim>
-;;
-;******************************************************************************************
+;; <programa> ::= <expresion>
+;;                (un-programa (exp))
+;;            ::= {<class-decls>}* <expresion>
+;;                (un-programa-oo (class-decls body))
+;; <expresion> ::= <identificador>
+;;                 (id-exp (id))
+;;             ::= var <identificador> = <expresion> {<identificador> = <expresion>}*(,) in <expresion>
+;;                 (var-exp (ids vals body))
+;;             ::= const <identificador> = <expresion> {<identificador> = <expresion>}*(,) in <expresion>
+;;                 (const-exp (ids vals body))
+;;             ::= rec {<identificador> ({<identificador>)}*(,)) = <expresion>}* in <expresion>
+;;                 (rec-exp (id params val body))
+;;             ::= <numero-entero>
+;;                 (int-exp (num))
+;;             ::= <numero-flotante>
+;;                 (float-exp (num))
+;;             ::= <hexadecimal>
+;;                 (hexadecimal)
+;;             ::= <cadena>
+;;                 (string-exp (str))
+;;             ::= <bool>
+;;                 (bool-exp (bool))
+;;             ::= <lista>
+;;                 (list-exp (lst))
+;;             ::= <tupla>
+;;                 (tuple-exp (tpl))
+;;             ::= <registro>
+;;                 (register-exp (log))
+;;             ::= <expr-bool>
+;;                 (boolean-app-exp (expr-bool))
+;;             ::= begin {<expresion>}+(;) end
+;;                 (begin-exp (exps))
+;;             ::= if <expr-bool> then <expresion> [ else <expresion> ] end
+;;                 (if-exp (cond-exp true-exp false-exp))
+;;             ::= while <expr-bool> do <expresion> done
+;;                 (while-exp (cond-exp body))
+;;             ::= for <identificador> in {<lista> | <tupla> | <registro>} do <expresion> done
+;;                 (for-exp (id data-struct body))
+;;             ::= <numero-entero> <primitiva-binaria-enteros> <numero-entero>
+;;                 (prim-bin-int-exp (num1 prim-bin-int num2))
+;;             ::= <primitiva-unaria-enteros> ( <numero-entero> )
+;;                 (prim-un-int-exp (prim-un-int num))
+;;             ::= <numero-flotante> <primitiva-binaria-flotantes> <numero-flotante>
+;;                 (prim-bin-float-exp (num1 prim-bin-float num2))
+;;             ::= <primitiva-unaria-flotantes> ( <numero-flotante> )
+;;                 (prim-un-float-exp (prim-un-float num))
+;;             ::= <primitiva-hexa> ( <hexadecimal> )
+;;                 (prim-hexa-exp (prim hexa))
+;;             ::= <primitiva-binaria-listas>
+;;                 (prim-bin-list-exp)
+;;             ::= <primitiva-unaria-listas>
+;;                 (prim-un-list-exp)
+;;             ::= <primitiva-listas>
+;;                 (prim-list-exp)
+;;             ::= <primitiva-binaria-tuplas>
+;;                 (prim-bin-tuple-exp)
+;;             ::= <primitiva-unaria-tuplas>
+;;                 (prim-un-tuple-exp)
+;;             ::= <primitiva-tuplas>
+;;             ::= <primitiva-binaria-registros>
+;;                 (prim-bin-register-exp)
+;;             ::= <primitiva-unaria-registros>
+;;                 (prim-un-register-exp)
+;;             ::= <primitiva-registros>
+;;                 (prim-register-exp)
+;;             ::= <primitiva-unaria-cadenas> ( <cadena> )
+;;                 (prim-un-string-exp (str))
+;;             ::= <primitiva-binaria-cadenas> ( <cadena>, <cadena> )
+;;                 (prim-bin-string-exp (str1 str2))
+;;             ::= proc ( {<identificador>}*(,) ) <expresion>
+;;                 (proc-exp (ids body))
+;;             ::= ( <expresion> {<expresion>}* )
+;;                 (app-exp (rator rands))
+;;             ::= letrec {<identificador> ( {<identificador>}*(,) ) = <expresion>}* in <expresion>
+;;                 (letrec-exp (proc-names ids bodies letrec-body))
+;;             ::= set <identificador> = <expresion>
+;;                 (varassign-exp (ids rhs-exp))
+;;             ::= new <identificador> ( {<expresion>}*(,) )
+;;                 (new-object-exp (class-name rands))
+;;             ::= send <expresion> <identificador> ( {<expresion>}*(,) )
+;;                 (method-app-exp (obj-exp method-name rands))
+;;             ::= super <identificador> ( {<expresion>}*(,) )
+;;                 (super-call-exp (method-name rands))
+;; <class-decl> ::= class <identificador> extends <identificador> { {field <identificador>}*(;) {<method-decl>}*(;) }
+;;                  (a-class-decl (class-name super-name fields-ids method-decls))
+;; <method-decl> ::= method <identificador> ( {<identificador>}*(,) ) <expresion>
+;;                   (a-method-decl (method-name ids body))
+;; <identificador> ::= letter {letter | digit | SchemeTextSymbol}*
+;;                     (identificador (id))
+;; <numero-entero> ::= digit {digit}*
+;;                     (int-number (num))
+;;                 ::= - digit {digit}*
+;;                     (negative-int-number (num))
+;; <numero-flotante> ::= digit {digit}* . digit {digit}*
+;;                       (float-number (num))
+;;                   ::= - digit {digit}* . digit {digit}*
+;;                       (negative-float-number (num))
+;; <hexadecimal> ::= ( <numero-entero> {<numero-entero>}* )
+;;                   (hexadecimal-base10 (nums))
+;;               ::= x8 ( <numero-entero> {<numero-entero>}* )
+;;                   (hexadecimal-octal (nums))
+;;               ::= x16 ( <numero-entero> {<numero-entero>}* )
+;;                   (hexadecimal-base16 (nums))
+;;               ::= x32 ( <numero-entero> {<numero-entero>}* )
+;;                   (hexadecimal-base32 (nums))
+;; <cadena> ::= " {digit | letter | SchemeTextSymbol}* "
+;;              (string-lit)
+;; <bool> ::= True
+;;            (true-boolean)
+;;        ::= False
+;;            (false-boolean)
+;; <lista> ::= [ {<expresion>}*(;) ]
+;;             (list (exps))
+;; <tupla> ::= tuple[ {<expresion>}*(;) ]
+;;             (tuple (exps))
+;; <registro> ::= { {<identificador> = <expresion>}+(;) }
+;;                (register (ids exps))
+;; <expr-bool> ::= <pred-prim> ( <expresion>, <expresion> )
+;;                 (pred-prim-app (prim exp1 exp2))
+;;             ::= <oper-bin-bool> ( <expr-bool>, <expr-bool> )
+;;                 (oper-bin-app (bin-oper exp1 exp2))
+;;             ::= <oper-un-bool> ( <expr-bool> )
+;;                 (oper-un-bool (un-oper exp))
+;;             ::= <bool>
+;;                 (simple-bool (bool))
+;; <pred-prim> ::= < | > | <= | >= | != | <>
+;; <oper-bin-bool> ::= and | or
+;; <oper-un-bool> ::= not
+;; <primitiva-binaria-enteros> ::= + | - | * | / | %
+;; <primitiva-unaria-enteros> ::= add1 | sub1
+;; <primitiva-binaria-flotantes> ::= + | - | * | / | %
+;; <primitiva-unaria-flotantes> ::= add1 | sub1
+;; <primitiva-hexa> ::= + | - | * | add1 | sub1
+;; <primitiva-binaria-listas> ::= append ( <lista>, <lista> )
+;;                                (append-list-prim (list1 list2))
+;; <primitiva-unaria-listas> ::= empty-list? ( <lista> )
+;;                               (empty-list?-prim (lst))
+;;                           ::= list? ( <lista> )
+;;                               (is-list?-prim (lst))
+;;                           ::= get-head ( <lista> )
+;;                               (head-list-prim (lst))
+;;                           ::= get-tail ( <lista> )
+;;                               (tail-list-prim (lst))
+;;                           ::= ref-list ( <lista> )
+;;                               (ref-list-prim (lst))
+;;                           ::= create-list ( <numero-entero> {<numero-entero>}*(;) )
+;;                               (create-list-prim (nums))
+;; <primitiva-listas> ::= set-list ( <lista>, <numero-entero>, <numero-entero> )
+;;                        (set-list-prim (lst index val))
+;; <primitiva-binaria-tuplas> ::= append ( <tupla>, <tupla> )
+;;                                (append-tuple-prim (t1 t2))
+;; <primitiva-unaria-tuplas> ::= empty-tuple? ( <tupla> )
+;;                               (empty-tuple?-prim (t))
+;;                           ::= tuple? ( <tupla> )
+;;                               (is-tuple?-prim (t))
+;;                           ::= get-head ( <tupla> )
+;;                               (head-tuple-prim (t))
+;;                           ::= get-tail ( <tupla> )
+;;                               (tail-tupla-prim (t))
+;;                           ::= ref-tuple ( <tupla> )
+;;                               (ref-tuple-prim (t))
+;;                           ::= create-tuple ( <numero-entero> {<numero-entero>}*(;) )
+;;                               (create-tuple-prim (nums))
+;; <primitiva-tuplas> ::= set-tuple ( <tupla>, <numero-entero>, <numero-entero> )
+;;                        (set-tuple-prim (t index val))
+;; <primitiva-binaria-registros> ::= append ( <registro>, <registro> )
+;;                                (append-register-prim (r1 r2))
+;; <primitiva-unaria-registros> ::= register? ( <registro> )
+;;                               (is-register?-prim (r))
+;;                           ::= ref-register ( <registro> )
+;;                               (ref-register-prim (r))
+;;                           ::= create-register ( <numero-entero> {<numero-entero>}*(;) )
+;;                               (create-register-prim (nums))
+;; <primitiva-registros> ::= set-register ( <registro>, <numero-entero>, <numero-entero> )
+;;                        (set-register-prim (r index val))
+;; <primitiva-unaria-cadenas> ::= length
+;; <primitiva-binaria-cadenas> ::= concat
 
-;******************************************************************************************
-;Especificación Léxica
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Especificación Léxica:
 (define lexica
 '(
-  (white-sp (whitespace) skip)
-  (comment ("#" (arbno (not #\newline))) skip)
-  (identificador (letter (arbno (or letter digit "?"))) symbol)
-  (numero (digit (arbno digit)) number) ; Enteros positivos
-  (numero ("-" digit (arbno digit)) number) ; Enteros negativos
-  (flotante (digit (arbno digit) "." digit (arbno digit)) number) ; Decimales positivos
-  (flotante ("-" digit (arbno digit) "." digit (arbno digit)) number) ; Decimales negativos
-  (texto ("$" (arbno (or letter digit whitespace "." "," ":" "+" "-" "_" "$" "#"))"$") string) ; Se definieron solo algunos simbolos del alfabeto
-  (caracter ("'" letter "'") symbol)
-  (null ("null") string)
+  (white-sp
+   (whitespace) skip)
+  (comment
+   ("#" (arbno (not #\newline))) skip)
+  (identificador
+   (letter (arbno (or letter digit "?" "$" "_" "@" "/"))) symbol)
+  (numero-entero
+   (digit (arbno digit)) number)
+  (numero-entero
+   ("-" digit (arbno digit)) number)
+  (numero-flotante
+   (digit (arbno digit) "." digit (arbno digit)))
+  (numero-flotante
+   ("-" digit (arbno digit) "." digit (arbno digit)))
+  (texto
+   ("\"" (arbno (or letter digit whitespace "." "," ":" "+" "-" "_" "$" "#" "@")) "\"") string)
+  (caracter
+   ("'" letter "'") symbol)
+  (null
+   ("null") string)
   ))
 
 
-;Especificación Sintáctica (gramática)
-
+; Gramática (Especificación Sintactica):
 (define gramatica
   '(
-    (programa (expresion) un-programa)
-    (programa ((arbno class-decl)"" expresion)
-              un-programa-oo)
-    (expresion (numero) numero-lit)
-    (expresion (flotante) flotante-lit)
-    (expresion (texto) texto-lit)
-    (expresion (caracter) caracter-lit)
-    (expresion (null) null)
-    (expresion (identificador) id-exp)
-    (expresion ("var" identificador "=" expresion)
+    (programa (expresion)
+              un-programa)
+    (expresion (identificador)
+               id-exp)
+    (expresion ("var" (separated-list identificador "=" expresion) "in" "{" expresion "}")
                var-exp)
-    (expresion ("const" identificador "=" expresion)
+    (expresion ("const" (separated-list identificador "=" expresion) "in" "{" expresion "}")
                const-exp)
-    (expresion ("&" identificador)
-               ref-exp)
-    (expresion ("print" "(" expresion ")")
-               imprimir-exp)
-    (expresion (exp-bool)
-               boolean-exp)
-    (expresion ("[" primitiva (separated-list expresion ",") "]")
-               primitiva-exp)
-    (expresion ("("expresion primitiva-binaria expresion")") primapp-bin-exp)
-    (expresion (primitiva-unaria "("expresion")") primapp-un-exp)
-    (expresion ("list" "[" (separated-list expresion ",") "]")
-               lista-exp)
-    (expresion ("vector" "(" (separated-list expresion ",") ")")
-               vector-exp)
-    (expresion ("log" "(" (separated-list identificador "->" expresion ";") ")")
-               registro-exp)
-    (expresion ("if" "(" expresion ")" "{" expresion "}" "else" "{" expresion "}")
-               condicional-exp)
-    (expresion ("local" "(" (separated-list expresion ";") ")" "{" expresion "}")
-                variableLocal-exp)
-    (expresion ("procedure" "(" (separated-list identificador ",") ")" "{" expresion "}")
-                procedimiento-exp)
-    (expresion ("function" identificador "(" (separated-list identificador ",") ")" "{" (separated-list expresion ";") "}")
-               funcion-exp)
-    (expresion ("evaluate" "{" expresion ";" (separated-list expresion ";") "}")
-               app-exp)
-    (expresion ("letrec" "{" identificador ";" (separated-list identificador ";") "}"  "in" expresion)
-               letrec-exp)
-    (expresion ("begin" "{" expresion ";" (separated-list expresion ";") "}")
+    (expresion ( "rec" "{" (arbno identificador (separated-list identificador ",") "=" expresion) "}" "in" "{" expresion "}" )
+               rec-exp)
+    (expresion (numero-entero)
+               int-exp)
+    (expresion (numero-flotante)
+               float-exp)
+    (expresion (hexadecimal)
+               hexadecimal)
+    (expresion (texto)
+               string-exp)
+    (expresion (bool)
+               bool-exp)
+    (expresion (lista)
+               list-exp)
+    (expresion (tupla)
+               tuple-exp)
+    (expresion (registro)
+               register-exp)
+    (expresion (expr-bool)
+               boolean-app-exp)
+    (expresion ("begin" "[" (separated-list expresion ";") "]" "end")
                begin-exp)
-    (expresion ("while" "(" expresion ")" "{" expresion "}")
-               while-loop-exp)
-    (expresion ("for" identificador "=" expresion "to" expresion "{" expresion "}")
-               for-loop-exp)
-    (expresion ("set!" identificador "=" expresion)
-               set-exp)
-    (expresion ("call" identificador"()")
-               llamado-funcion-exp)
-    (expresion ("new" identificador "("(separated-list expresion ",")")")
-               nuevo-objeto-exp)
-    (expresion ("send" expresion identificador "(" (separated-list expresion ",") ")")
-               metodo-app-exp)
-    (expresion ("super" identificador "(" (separated-list expresion ",") ")")
-               super-llamado-exp)
-    (class-decl ("class" identificador "extends" identificador "(" (separated-list identificador ",") ")" "{" (separated-list "field" identificador ";") (separated-list method-decl ";") "}")
-               declaracion-clase-exp)
-    (method-decl ("method" identificador "(" (separated-list identificador ",") ")" "{" expresion "}")
-                 declaracion-metodo-clase-exp)
-    (exp-bool (boolean)
-              exp-bool-simple)
-    (exp-bool (operacion-binaria-bool "(" expresion "," expresion ")")
-              exp-bool-bin)
-    (exp-bool (operacion-unaria-bool "(" expresion ")")
-              exp-bool-un)
-    (exp-bool (predicado-primitiva "(" expresion "," expresion ")")
-              predicado-primitiva-bool)
-    (boolean ("True")
-             true-boolean)
-    (boolean ("False")
-             false-boolean)
-    (predicado-primitiva (">")
-                         mayor-bool)
-    (predicado-primitiva (">=")
-                         mayor-igual-bool)
-    (predicado-primitiva ("<")
-                         menor-bool)
-    (predicado-primitiva ("<=")
-                         menor-igual-bool)
-    (predicado-primitiva ("==")
-                         igual-bool)
-    (predicado-primitiva ("!=")
-                         diferente-bool)
-    (operacion-binaria-bool ("and")
-                            and-primitiva-bool)
-    (operacion-binaria-bool ("or")
-                            or-primitiva-bool)
-    (operacion-unaria-bool ("not")
-                           not-primitiva-bool)
-    (primitiva-binaria ("+") primitiva-suma)
-    (primitiva-binaria ("~") primitiva-resta)
-    (primitiva-binaria ("/") primitiva-div)
-    (primitiva-binaria ("*") primitiva-multi)
-    (primitiva-binaria ("%") primitiva-mod)
-    (primitiva-binaria ("concat") primitiva-concat)
-    (primitiva-unaria ("length") primitiva-longitud)
-    (primitiva-unaria ("add1") primitiva-add1)
-    (primitiva-unaria ("sub1") primitiva-sub1)
-
-    (expresion ("X8(" (arbno expresion) ")")
-               hexadecimal-base8-exp)
-    (expresion ("X16(" (arbno expresion) ")")
-               hexadecimal-base16-exp)
-    (expresion ("X32(" (arbno expresion) ")")
-               hexadecimal-base32-exp)
-
-    (primitiva ("empty-list?")
-                      lista-vacia?-prim)
-    (primitiva ("empty")
-                      lista-vacio-prim)
-    (primitiva ("list?")
-                      es-lista?-prim)
-    (primitiva ("new List()")
-                      crear-lista-prim)
-    (primitiva ("get-head")
-                      cabeza-lista-prim)
-    (primitiva ("get-tail")
-                      cola-lista-prim)
-    (primitiva ("append")
-                      append-lista-prim)
-
-    (primitiva ("vector?")
-                      es-vector?-prim)
-    (primitiva ("ref-vector")
-                      ref-vector-prim)
-    (primitiva ("set-vector")
-                       set-vector-prim)
-    (primitiva ("new Vect()")
-                       crear-vector-prim)
-
-    (primitiva ("log?")
-               es-registro?-prim)
-    (primitiva ("ref-log")
-               ref-registro-prim)
-    (primitiva ("set-log")
-               set-registro-prim)
-    (primitiva ("new Log()")
-               crear-registro-prim)
-    
+    (expresion ("if" "(" expr-bool ")" "{" expresion "}" "else" "{" expresion "}")
+              if-exp)
+    (expresion ("while" "(" expr-bool ")" "{" expresion "}")
+               while-exp)
+    (expresion ("for" identificador "in" (or lista tupla registro) "{" expresion "}")
+               for-exp)
+    (expresion ("(" numero-entero primitiva-binaria-enteros numero-entero ")")
+               prim-bin-int-exp)
+    (expresion (primitiva-unaria-enteros "(" numero-entero ")")
+               prim-un-int-exp)
+    (expresion ("(" numero-flotante primitiva-binaria-flotantes numero-flotante ")")
+               prim-bin-float-exp)
+    (expresion (primitiva-unaria-flotantes "(" numero-flotante ")")
+               prim-un-float-exp)
+    ;#TODO: COntinuación de gramática
     ))
-
-
-;Tipos de datos construidos automáticamente:
-
-(sllgen:make-define-datatypes lexica gramatica)
-
-(define show-the-datatypes
-  (lambda () (sllgen:list-define-datatypes lexica gramatica)))
-
-;-----------------------------------------------------------------------------------------
-;Parser, Scanner, Interfaz
-
-;El FrontEnd (Análisis léxico (scanner) y sintáctico (parser) integrados)
-
-(define scan&parse
-  (sllgen:make-string-parser lexica gramatica))
-
-;El Analizador Léxico (Scanner)
-
-(define just-scan
-  (sllgen:make-string-scanner lexica gramatica))
-
-;El Interpretador (FrontEnd + Evaluación + señal para lectura )
-
-(define interpretador
-  (sllgen:make-rep-loop  "=> "
-    (lambda (pgm) (evaluar-programa  pgm)) 
-    (sllgen:make-stream-parser 
-      lexica
-      gramatica)))
-
-
-;--------------------------------------------------------------------------------------------
-; Comienzo del interprete
-
-;; eval-program: <un-programa> => numero
-;; Función que evalua el programa dado usando el ambiente dado (ambiente inicial)
-(define evaluar-programa
-  (lambda (pgm)
-    #t
-    ))
-
-
-;--------------------------------------------------------------------------------------------
-
-; Ejemplos de uso de gramática con scan&parse:
-
-(scan&parse "var x = if (True) { print('a') } else { print('b') }")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
