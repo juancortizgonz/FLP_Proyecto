@@ -202,80 +202,214 @@
 ;; <primitiva-unaria-cadenas> ::= length
 ;; <primitiva-binaria-cadenas> ::= concat
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Especificación Léxica:
+;Especificación Léxica:
 (define lexica
-'(
-  (white-sp
+'((white-sp
    (whitespace) skip)
   (comment
    ("#" (arbno (not #\newline))) skip)
-  (identificador
-   (letter (arbno (or letter digit "?" "$" "_" "@" "/"))) symbol)
-  (numero-entero
+  (identifier
+   (letter (arbno (or letter digit "?" "." "-" "_"))) symbol)
+  (bool
+   ((or "@T" "@F")) symbol)
+  (txt
+   ("\"" (arbno (or letter digit whitespace "," "." ":" "-")) "\"") string)
+  (number
    (digit (arbno digit)) number)
-  (numero-entero
+  (number
    ("-" digit (arbno digit)) number)
-  (numero-flotante
-   (digit (arbno digit) "." digit (arbno digit)))
-  (numero-flotante
-   ("-" digit (arbno digit) "." digit (arbno digit)))
-  (texto
-   ("\"" (arbno (or letter digit whitespace "." "," ":" "+" "-" "_" "$" "#" "@")) "\"") string)
-  (caracter
-   ("'" letter "'") symbol)
-  (null
-   ("null") string)
+  (number
+   (digit (arbno digit) "." (arbno digit)) number)
+  (number
+   ("-" digit (arbno digit) "." (arbno digit)) number)
   ))
 
 
-; Gramática (Especificación Sintactica):
+;Especificación Sintáctica (Gramática):
 (define gramatica
   '(
-    (programa (expresion)
-              un-programa)
-    (expresion (identificador)
-               id-exp)
-    (expresion ("var" (separated-list identificador "=" expresion) "in" "{" expresion "}")
-               var-exp)
-    (expresion ("const" (separated-list identificador "=" expresion) "in" "{" expresion "}")
-               const-exp)
-    (expresion ( "rec" "{" (arbno identificador (separated-list identificador ",") "=" expresion) "}" "in" "{" expresion "}" )
-               rec-exp)
-    (expresion (numero-entero)
-               int-exp)
-    (expresion (numero-flotante)
-               float-exp)
-    (expresion (hexadecimal)
-               hexadecimal)
-    (expresion (texto)
-               string-exp)
-    (expresion (bool)
-               bool-exp)
-    (expresion (lista)
-               list-exp)
-    (expresion (tupla)
-               tuple-exp)
-    (expresion (registro)
-               register-exp)
-    (expresion (expr-bool)
-               boolean-app-exp)
-    (expresion ("begin" "[" (separated-list expresion ";") "]" "end")
-               begin-exp)
-    (expresion ("if" "(" expr-bool ")" "{" expresion "}" "else" "{" expresion "}")
-              if-exp)
-    (expresion ("while" "(" expr-bool ")" "{" expresion "}")
-               while-exp)
-    (expresion ("for" identificador "in" (or lista tupla registro) "{" expresion "}")
-               for-exp)
-    (expresion ("(" numero-entero primitiva-binaria-enteros numero-entero ")")
-               prim-bin-int-exp)
-    (expresion (primitiva-unaria-enteros "(" numero-entero ")")
-               prim-un-int-exp)
-    (expresion ("(" numero-flotante primitiva-binaria-flotantes numero-flotante ")")
-               prim-bin-float-exp)
-    (expresion (primitiva-unaria-flotantes "(" numero-flotante ")")
-               prim-un-float-exp)
-    ;#TODO: COntinuación de gramática
-    ))
+    ;; Program
+    (program ((arbno class-decl) expression) a-program)
+
+    ;; Expression
+    
+    ; Tipos de datos básicos
+    (expression (number) numero-lit)
+    (expression (identifier) var-exp)
+    (expression (txt)  texto-lit)
+    (expression (expr-bool) boolean-expr)
+
+    ; Aplicación de primitivas básicas
+    (expression (uni-primitive "(" expression ")") primapp-un-exp)
+    (expression ("(" expression bi-primitive expression ")") primapp-bi-exp)
+
+    ; Aplicación de primitivas para otras estructuras de datos [list, tuple, registers]
+    (expression (list-prim) prim-list-exp)
+    (expression (tuple-prim) prim-tuple-exp)
+    (expression (regs-prim) prim-registro-exp)
+    
+    ; Condicional if. La sintaxis está basada en Python (https://www.w3schools.com/python/python_conditions.asp)
+    (expression ("if" expression ":" expression "else" expression) if-exp)
+
+    ; Procedimiento. La sintaxis está basada en Python, se definen como funciones anonimcas basadas en Lambda
+    ; (https://www.programiz.com/python-programming/anonymous-function)
+    (expression ("lambda" "(" (separated-list identifier ",") ")" ":" expression) proc-exp)
+
+    ; Evaluar/invocar expresiones
+    (expression ("call" "(" expression "(" (separated-list expression ",") ")" ")") app-exp)
+
+    ; Let recursivo (letrec)
+    (expression ("letrec" (arbno identifier "(" (separated-list identifier ",") ")" "=" expression)  "{" expression "}") letrec-exp)
+
+    ; Definición de constantes. La sintaxis se basa en Java, para expresiones inmutables
+    ; (https://www.scaler.com/topics/constant-in-java/)
+    (expression ("final" "(" (separated-list identifier "=" expression ";") ")""{" expression "}") constanteLocal-exp)
+
+    ; Definición de variables mutables con var. La sintaxis está basada en JavaScript
+    ; (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/var)
+    (expression ("var" "(" (separated-list identifier "=" expression ";") ")""{" expression "}") variableLocal-exp)
+
+    ; Tipo de dato lista. La sintaxis está basada en Python
+    ; (https://www.w3schools.com/python/python_lists.asp)
+    (expression ("["(separated-list expression ",") "]") lista)
+
+    ; Tipo de dato tupla. La sintaxis se basa en Python
+    ; (https://www.w3schools.com/python/python_tuples.asp)
+    (expression ("tupla("(separated-list expression ",") ")") tupla)
+
+    ; Tipo de dato registro. La sintaxis se basa en Python, en el tipo de dato Diccionario
+    ; (https://www.w3schools.com/python/python_dictionaries.asp)
+    (expression ("{"identifier ":" expression (arbno ";" identifier ":" expression) "}") registro)
+
+    ; Bloque begin para expresiones
+    (expression ("begin" "{" expression (arbno ";" expression) "}" "end") begin-exp)
+    
+    ; print para imprimir en pantalla. Basado en Python.
+    (expression ("print" "(" expression ")") print-exp)
+    
+    ; Ciclo for. Basado en for loop de Python, con ligeras modificaciones
+    (expression ("for" identifier "=" expression for-way expression ":" expression "end") for-exp)
+    ; Variantes para recorrido de ciclo for
+    (for-way ("to") to)
+    (for-way ("downto") downto)
+    
+    ; Ciclo while. La sintaxis se basa en Python
+    ; ()
+    (expression ("while" expression ":" expression) while-exp)
+      
+    ; Expresión para base de número hexadecimales
+    (expression ("base" expression "(" (arbno expression) ")") base-exp)
+    
+    ; Set de un valor mutable
+    (expression ("set!" identifier "=" expression)updateVar-exp)
+
+    ; Bloque de expresiones (programación imperativa)
+    (expression ("block" "{" expression (arbno ";" expression) "}")
+                block-exp)
+
+    ; Aplicación de primitivas que generan valores booleanos
+    (expr-bool (pred-prim "(" expression "," expression ")") comp-pred)
+    (expr-bool (oper-bin-bool "(" expr-bool "," expr-bool ")") comp-bool-bin)
+    (expr-bool (bool) booleano-lit)
+    (expr-bool (oper-un-bool "(" expr-bool ")") comp-bool-un)
+    
+    ; Primitivas binarias para números
+    (bi-primitive ("+") primitiva-suma)
+    (bi-primitive ("~") primitiva-resta)
+    (bi-primitive ("*") primitiva-multi)
+    (bi-primitive ("/") primitiva-div)
+    (bi-primitive ("concat") primitiva-concat)
+    (bi-primitive ("mod") primitiva-elmodulo)
+
+    ; Primitivas unarias para números
+    (uni-primitive ("add1") primitiva-add1)
+    (uni-primitive ("sub1") primitiva-sub1)
+    (uni-primitive ("longitud") primitiva-longitud)
+
+    ; Operadores predicados
+    (pred-prim ("<") prim-bool-menor)
+    (pred-prim (">") prim-bool-mayor)
+    (pred-prim ("<=") prim-bool-menor-igual)
+    (pred-prim (">=") prim-bool-mayor-igual)
+    (pred-prim ("==") prim-bool-equiv)
+    (pred-prim ("<>") prim-bool-diff)
+
+    ; Primitivas aplicables sobre booleanos
+    (oper-bin-bool ("and") prim-bool-conj)
+    (oper-bin-bool ("or") prim-bool-disy)
+    (oper-un-bool ("not") prim-bool-neg)
+
+    ; Primitivas de listas
+    (list-prim ("empty-lst" "("")") prim-make-empty-list)
+    (list-prim ("is-empty-lst?" "("expression")") prim-empty-list)
+    (list-prim ("create-lst" "("(separated-list expression ",") ")") prim-make-list); crear-lista(<elem1>,<elem2>,<elem3>,...)
+    (list-prim ("lst?" "("expression")") prim-list?-list); lista?(<lista>)-> Bool
+    (list-prim ("head-lst""(" expression")") prim-head-list);cabeza-lista(<lista>)-> <elem1>
+    (list-prim ("tail-lst" "(" expression")") prim-tail-list);cola-lista(<lista>)-> <elem2>,<elem3>,...
+    (list-prim ("append-lst""("expression "," expression")") prim-append-list);append-lista([<elem1>,<elem2>,<elem3>,...],[<elemA>,<elemB>,<elemC>,...])-> <elem1>,<elem2>,<elem3>,...,<elemA>,<elemB>,<elemC>,...
+    (list-prim ("ref-lst""("expression "," expression")") prim-ref-list);ref-lista(<lista>, pos) 
+    (list-prim ("set-lst""("expression "," expression "," expression ")") prim-set-list);set-lista(<lista>, pos, value) 
+
+    ; Primitivas de tuplas
+    (tuple-prim ("empty-tuple" "("")") prim-make-empty-tuple)
+    (tuple-prim ("is-empty-tuple?" "("expression")") prim-empty-tuple)
+    (tuple-prim ("create-tuple" "("(separated-list expression ",") ")") prim-make-tuple); crear-tupla(<elem1>,<elem2>,<elem3>,...)
+    (tuple-prim ("tuple?" "("expression")") prim-tuple?-tuple); tupla?(<tupla>)-> Bool
+    (tuple-prim ("head-tuple""(" expression")") prim-head-tuple);cabeza-tupla(<tupla>)-> <elem1>
+    (tuple-prim ("tail-tuple" "(" expression")") prim-tail-tuple);cola-tupla(<lista>)-> <elem2>,<elem3>,...
+    (tuple-prim ("ref-tuple""("expression "," expression")") prim-ref-tuple);ref-tupla(<lista>, pos) 
+
+    ; Primitivas de registros
+    (regs-prim ("reg?" "(" expression ")") prim-regs?-registro)
+    (regs-prim ("create-reg" "(" identifier "=" expression (arbno "," identifier "=" expression) ")") prim-make-registro)
+    (regs-prim ("ref-reg" "(" expression ","expression ")") prim-ref-registro); ref-registro(<registro>,<id>) -> <value>
+    (regs-prim ("set-reg" "(" expression ","expression","expression ")") prim-set-registro); set-registro(<registro>,<id>, <new-value>)
+
+    ;; Programación Orientada a Objetos. La mayor parte de la sintaxis (simplificada) está basada en Java
+    ;; (https://www.w3schools.com/java/java_oop.asp)
+
+    ; Declaración de una clase
+    (class-decl ("class" identifier "extends" identifier "()" (arbno "field" identifier ";") (arbno method-decl)) a-class-decl)
+
+    ; Declaración de un metodo
+    (method-decl ("method" identifier "(" (separated-list identifier ",") ")" "{" expression "}")a-method-decl)
+
+    ; Nueva instancia de una clase (objeto)
+    (expression ("new" identifier "(" (separated-list expression ",") ")") new-object-exp)
+    
+    ; Super llamado de un metodo
+    (expression ("super" identifier "(" (separated-list identifier ",") ")") super-call-exp)
+
+    ; Llamado de un metodo de una clase
+    (expression ("send" expression identifier "("  (separated-list expression ",") ")") method-app-exp)
+
+  ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;Construidos automáticamente:
+(sllgen:make-define-datatypes lexica gramatica)
+
+(define show-the-datatypes
+  (lambda () (sllgen:list-define-datatypes lexica gramatica)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Parser, Scanner e Interfaz
+
+; El FrontEnd (Análisis léxico (scanner) y sintáctico (parser) integrados)
+(define scan&parse
+  (sllgen:make-string-parser lexica gramatica))
+
+; El Analizador Léxico (Scanner)
+(define just-scan
+  (sllgen:make-string-scanner lexica gramatica))
+
+;El Interpretador (FrontEnd + Evaluación + señal para lectura )
+#|(define interpretador
+  (sllgen:make-rep-loop  "--> "
+    (lambda (pgm) (eval-program  pgm))
+    (sllgen:make-stream-parser
+      lexica
+      gramatica)))|#
