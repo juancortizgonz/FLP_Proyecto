@@ -209,7 +209,7 @@
 '((white-sp
    (whitespace) skip)
   (comment
-   ("#" (arbno (not #\newline))) skip)
+   ("%" (arbno (not #\newline))) skip)
   (identifier
    (letter (arbno (or letter digit "?" "." "-" "_"))) symbol)
   (bool
@@ -342,7 +342,7 @@
     (oper-un-bool ("not") prim-bool-neg)
 
     ; Primitivas de listas
-    (list-prim ("empty-lst" "("")") prim-make-empty-list)
+    (list-prim ("empty-lst" "()") prim-make-empty-list)
     (list-prim ("is-empty-lst?" "("expression")") prim-empty-list)
     (list-prim ("create-lst" "("(separated-list expression ",") ")") prim-make-list); crear-lista(<elem1>,<elem2>,<elem3>,...)
     (list-prim ("lst?" "("expression")") prim-list?-list); lista?(<lista>)-> Bool
@@ -353,7 +353,7 @@
     (list-prim ("set-lst""("expression "," expression "," expression ")") prim-set-list);set-lista(<lista>, pos, value) 
 
     ; Primitivas de tuplas
-    (tuple-prim ("empty-tuple" "("")") prim-make-empty-tuple)
+    (tuple-prim ("empty-tuple" "()") prim-make-empty-tuple)
     (tuple-prim ("is-empty-tuple?" "("expression")") prim-empty-tuple)
     (tuple-prim ("create-tuple" "("(separated-list expression ",") ")") prim-make-tuple); crear-tupla(<elem1>,<elem2>,<elem3>,...)
     (tuple-prim ("tuple?" "("expression")") prim-tuple?-tuple); tupla?(<tupla>)-> Bool
@@ -371,7 +371,7 @@
     ;; (https://www.w3schools.com/java/java_oop.asp)
 
     ; Declaración de una clase
-    (class-decl ("class" identifier "extends" identifier "()" (arbno "field" identifier ";") (arbno method-decl)) a-class-decl)
+    (class-decl ("Clase" identifier "extends" identifier (arbno "field" identifier ";") (arbno method-decl)) a-class-decl)
 
     ; Declaración de un metodo
     (method-decl ("method" identifier "(" (separated-list identifier ",") ")" "{" expression "}")a-method-decl)
@@ -413,3 +413,96 @@
     (sllgen:make-stream-parser
       lexica
       gramatica)))|#
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Identificador
+(scan&parse "new-identifier")
+
+; Valores booleanos
+(scan&parse "@T")
+
+; Cadenas (String)
+(scan&parse "\"Just a Text\"")
+
+; Numbers
+(scan&parse "-45.32")
+(scan&parse "24")
+
+; Aplicación de primitiva unaria
+(scan&parse "add1(45.2)")
+
+; Aplicación de primitiva binaria
+(scan&parse "(2*4)")
+
+; Primitivas de listas
+(scan&parse "empty-lst ()")
+(scan&parse "is-empty-lst?(empty-lst ())")
+(scan&parse "create-lst(2,3,4,5)")
+(scan&parse "lst?(empty-lst ())")
+(scan&parse "head-lst([3,5,8,10])")
+(scan&parse "tail-lst([-2.5,-4.6])")
+(scan&parse "append-lst([\"monday\",\"Friday\"],[\"September\",\"November\",\"December\"])")
+(scan&parse "ref-lst([@T,@F,@F,@T,@T], 3)")
+(scan&parse "set-lst([11,23,33,44,55], 1, 22)")
+
+; Primitivas de tuplas
+(scan&parse "empty-tuple ()")
+(scan&parse "is-empty-tuple?(empty-tuple ())")
+(scan&parse "create-tuple(id1, id2, id3)")
+(scan&parse "tuple?(tupla(100000,10000000000))")
+(scan&parse "head-tuple(tupla(a,b,c))")
+(scan&parse "tail-tuple(tupla(x,y,z))")
+(scan&parse "ref-tuple(tupla(@T,x,\"Text\",20), 2)")
+
+; Primitivas de registros
+(scan&parse "reg?({while-loop-1: while @T: print(@T); a-simple-text: \"Just a random text\"})")
+(scan&parse "create-reg(apple=fruit, cow=animal, green=color)")
+(scan&parse "ref-reg({a:4;b:1;c:7}, 1)")
+(scan&parse "set-reg({a:4; b:1; c:7}, 0, 1000)")
+
+; Condicional if
+(scan&parse "if <(2,3): 1 else 2")
+
+; Procedimiento
+(scan&parse "lambda (x, y) : (x + y)")
+
+; Evaluar/invocar expresiones
+(scan&parse "call (my-proc (param1, param2))")
+
+; letrec
+(scan&parse "letrec makeList (name, lastName) = lambda (n, l) : create-lst(n, l) {call (makeList(\"Juan\", \"XYZ\")) }")
+
+; Definición de constantes
+(scan&parse "final (x=0; y=1) { block{ sub1(y); if ==(x, y): @T else @F } }")
+
+; Definición de variables mutables con var
+(scan&parse "var (name=\"Proyecto\"; course=FLP) { begin { print(name); create-lst(name, course) } end }")
+
+; Estructura begin
+(scan&parse "begin { var (x=0) { set! x = 1 }; print(x) } end")
+
+; Imprimir en pantalla
+(scan&parse "print(ref-lst([2,-2,4,-4], 2))")
+
+; Ciclo for
+(scan&parse "for x = 0 downto [a, b, c, d, e, f]: create-reg(head=head-tuple(tupla(2,3)), a=add1(x)) end")
+
+; Ciclo while
+(scan&parse "while set! x = 10 : begin { print(x); add1(x); print(x) } end")
+
+; Actualización de variable con set!
+(scan&parse "begin { var (x=@T) { print(x) }; set! x = 0 } end")
+
+; Bloque de código
+(scan&parse "block { while @T : set! x = add1(x); print(\"Infinite loop block\") }")
+
+; Operaciones lógicas (booleanas)
+(scan&parse "and(@T,@T)")
+(scan&parse "or(@T,>(2,3))")
+(scan&parse "not(==(@T,True))")
+
+; Programación Orientada a Objetos
+; Definición de clases
+; (scan&parse "class teacher extends person () field name; field age; field experience; field courses; method initialize (nombre, edad, experiencia, cursos) { create-reg(nombre=name, edad=age, experiencia=experience, cursos=courses) }")
