@@ -532,20 +532,6 @@ class Perro extends Animal
 
 new Animal(Mamifero, Perro)")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; Llamado al interpretador
-(interpretador)
-
-; Ejemplos de uso con el interpretador (funcionalidad del lenguaje de programación)
-
-; Programas recursivos (cálculo del factorial de un número)
-; letrec fact(n) = if ==(n,0): 1 else (n * call( fact( (n~1) ) ) ) {call(fact(5))} Expected output: 120
-; letrec fact(n) = if ==(n,0): 1 else (n * call( fact( (n~1) ) ) ) {call(fact(5))} Expected output: 1
-
-; Programas con ciclos (cálculo del factorial de un número)
-; var (numero=5; acc=1) { for i=numero downto 1: begin { set! acc = (acc*i); set! i = (i+1); print(acc) } end end } ; Expected output: Imprime el factorial de cada número hasta 120, dado que el número final es 5
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Ambiente inicial
@@ -756,7 +742,169 @@ new Animal(Mamifero, Perro)")
       )
     ))
     
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Funciones especificas de evaluación de otros tipos de datos
+
+; eval-bool-exp: Evalúa expresiones booleanas
+(define eval-bool-exp
+  (lambda (expr-boolean env)
+    (cases expr-bool expr-boolean ; Se aplica cases para las expresiones booleanas, en cada case se evaluan las expresiones de los argumentos
+      (comp-pred (pred-prim rand1 rand2)
+                (let ((arg1 (eval-expression rand1 env))
+                      (arg2 (eval-expression rand2 env)))
+                  (eval-comp-pred pred-prim arg1 arg2))) ; Se aplica la primitiva
+      (comp-bool-bin (oper-bin-bool rand1 rand2)
+                     (let ((arg1 (eval-bool-exp rand1 env))
+                           (arg2 (eval-bool-exp rand2 env)))
+                          (eval-comp-bool-bin oper-bin-bool arg1 arg2))) ; Se aplica la primitiva
+      (booleano-lit (datum) (if (equal? datum '@T) #t #f)) ; Representación de los booleanos simples
+      (comp-bool-un (oper-unario-bool rand)
+                    (let ((arg1 (eval-bool-exp rand env)))
+                          (cases oper-un-bool oper-unario-bool
+                            (prim-bool-neg () (not arg1))))) ; Caso para la negación lógica
+      )
+    ))
+
+; eval-comp-pred: Aplica la primitiva de tipo predicado con dos argumentos dados (ya evaluados) y retorna el resultado de haber aplicado la prim
+(define eval-comp-pred
+  (lambda (pred-primitive arg1 arg2)
+    (cases pred-prim pred-primitive
+      ; Cada caso representa una primitiva y su ejecución en Scheme
+      (prim-bool-menor () (< arg1 arg2))
+      (prim-bool-mayor () (> arg1 arg2))
+      (prim-bool-menor-igual () (<= arg1 arg2))
+      (prim-bool-mayor-igual () (>= arg1 arg2))
+      (prim-bool-equiv () (equal? arg1 arg2))
+      (prim-bool-diff () (not (equal? arg1 arg2))))
+    ))
+
+; eval-comp-bool-bin: Aplica una operación binaria a dos argumentos dados (ya evaluados) y retorna el resultado de haber aplicado la prim
+(define eval-comp-bool-bin
+  (lambda (op-bin arg1 arg2)
+    (cases oper-bin-bool op-bin
+      ; Cada caso representa las dos operaciones lógicas (disyunción y conjunción), se aplican usando las funciones de Scheme
+      (prim-bool-conj () (and arg1 arg2))
+      (prim-bool-disy () (or arg1 arg2))
+      )
+    ))
+
+; eval-prim-list: Evalúa las primitivas que se aplican sobre listas
+(define eval-prim-list
+  (lambda (primitiva env)
+    (cases list-prim primitiva
+      ; La representación de las listas la realizamos con vectores de Scheme, dado que es una estructura de datos de acceso seguro
+      ; esto quiere decir, que lanzará por defecto un error, si la posición solicitada excede el rango, ahorrando la creación de otra
+      ; función auxiliar. Además, el acceso a una posición de un vector se realiza en un tiempo O(1), lo que optimiza las operaciones
+      ; sobre este tipo de dato. Los vectores de Scheme también brindan la posibilidad de convertirse en estructuras mutables o inmutables
+      ; dependiendo de la utilidad que se les dé.
+      ; (https://docs.racket-lang.org/reference/vectors.html)
+      (prim-make-empty-list () (make-vector 0)) ; Crea un vector vacío para inicializar la lista
+      (prim-empty-list (exp) ( = (vector-length (eval-expression exp env)) 0)) ; Compara la longitud del vector usando vector-length de Scheme
+      (prim-make-list (list-elem)
+                      (list->vector (map (lambda (elem)
+                                           (eval-expression elem env)) list-elem))) ; Aplica la función de evaluación a cada elem dado para generar la nueva lista
+      (prim-list?-list (exp)
+                       (vector? (eval-expression exp env))) ; Compara si la expresión dada es un vector y retorna el valor booleano (vector es representación de las listas para nuestro caso)
+      (prim-head-list (exp)
+                      (if ( = (vector-length (eval-expression exp env)) 0)
+                                (eopl:error 'eval-expression
+                                 "Cannot get the head of an empty list. List must have at least one element to get head ~s" )
+                                (vector-ref (eval-expression exp env) 0))) ; Retorna el valor de la cabeza de la lista, usando vector ref y la posición 0
+      (prim-tail-list (exp)
+                      (if ( = (vector-length (eval-expression exp env)) 0)
+                                (make-vector 0)
+                                (list->vector (cdr (vector->list (eval-expression exp env))) ))) ; Evalua recursivamente para obtener el último elemento de la lista
+      (prim-append-list (exp1 exp2)
+                        (list->vector (append (vector->list (eval-expression exp1 env)) (vector->list (eval-expression exp2 env)) )) ) ; Une dos listas con append y lo convierte a vector
+      (prim-ref-list (list index)
+                     (if ( >= (eval-expression index env) (vector-length (eval-expression list env)))
+                                (eopl:error 'eval-expression ; Se define un error propio de tipo out of range
+                                 "The index ~s is out of range"  (eval-expression index env))
+                                (vector-ref (eval-expression list env) (eval-expression index env)) )) ; Usando vector-ref se obtiene la refrencia, pasandole la posición y la lista ya evaluadas
+      (prim-set-list (list index val)
+                     (if ( >= (eval-expression index env) (vector-length (eval-expression list env)))
+                                (eopl:error 'eval-expression
+                                 "The index ~s is out of range"  (eval-expression index env))
+                                 (vector-set! (eval-expression list env) (eval-expression index env) (eval-expression val env)) )) ; Cambia el valor de una posición de la lista usando vector-set!
+    )
+    ))
+
+; eva-prim-tuple: Evalúa las primitivas que se aplican sobre tuplas
+(define eval-prim-tuple
+  ; Se usa listas de Scheme para representar las tuplas
+  (lambda (prim env)
+    (cases tuple-prim prim
+      (prim-make-empty-tuple () (list))
+      (prim-empty-tuple (exp)
+                        ( = (length (eval-expression exp env)) 0)) ; Retorna un valor booleano, si la tupla está vacía
+      (prim-make-tuple (tuple-elem)
+                       (map (lambda (elem) (eval-expression elem env)) tuple-elem)) ; Evalua cada expresión dada como argumentos para crear la tupla
+      (prim-tuple?-tuple (exp)
+                         (list? (eval-expression exp env))) ; Predicado para verificar si es una lista
+      (prim-head-tuple (exp)
+                       (if ( = (length (eval-expression exp env)) 0)
+                                (eopl:error 'eval-expression
+                                 "Cannot get the head of an empty tuple" )
+                                (list-ref (eval-expression exp env) 0))) ; Obtiene la referencia de la posición 0 (head)
+      (prim-tail-tuple (exp)
+                       (if ( = (length (eval-expression exp env)) 0)
+                                (list)
+                                (cdr (eval-expression exp env))))
+      
+     (prim-ref-tuple (tuple index)
+                     (if (>= (eval-expression index env) (length (eval-expression tuple env)))
+                                (eopl:error 'eval-expression
+                                 "The index ~s is out of range"  (eval-expression index env))
+                                (list-ref (eval-expression tuple env) (eval-expression index env)))) ; Evalua la posición y la tupla y retorna la referencia de la posición dada
+    )))
+
+; eval-regs-prim: Evalúa las primitivas que se aplican sobre registros
+(define eval-regs-prim
+  (lambda (regs-primitive env)
+    (cases regs-prim regs-primitive
+      (prim-regs?-registro (exp)
+                           (let
+                               (
+                                (regs (eval-expression exp env)) ; Almacena los valores evaluados en la variable regs
+                                )
+                             (if (and (list? regs) (= (length regs) 2))
+                                 (if (and (vector? (cadr regs)) (= (length (car regs)) (vector-length (cadr regs))))
+                                     #t #f)
+                                 #f)))
+      (prim-make-registro (id val rest-ids rest-vals) (list (cons id rest-ids)
+                                                            (list->vector (map (lambda (element) (eval-expression element env) ) (cons val rest-vals)))))
+      (prim-ref-registro (exp id-exp)
+                         (let
+                             (
+                               (regs (eval-expression exp env))
+                                        (ids (car (eval-expression exp env)))
+                                        (vals (cadr (eval-expression exp env)))
+                                        (id (cases expression id-exp
+                                              (var-exp (datum) datum)
+                                              (else (eopl:error 'eval-expression "Expression ~s is not an identifier" id-exp))))
+                                        )
+                                    (if (number? (list-find-position id ids))
+                                        (vector-ref vals (list-find-position id ids))
+                                        (eopl:error 'eval-expression "Identifier ~s not found, in the list of available identifiers ~s" id ids))))
+      
+      (prim-set-registro (exp id-exp val)
+                         (let
+                             (
+                              (regs (eval-expression exp env))
+                                        (ids (car (eval-expression exp env)))
+                                        (values (cadr (eval-expression exp env)))
+                                        (id (cases expression id-exp
+                                              (var-exp (datum) datum)
+                                              (else (eopl:error 'eval-expression "Expression ~s is not an identifier" id-exp))))
+                                        )
+                                    (if (number? (list-find-position id ids))
+                                        (vector-set! values (list-find-position id ids) (eval-expression val env))
+                                        (eopl:error 'eval-expression "Identifier ~s not found, in the list of available identifiers ~s" id ids))))
+      (else 1))
+    ))
     
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
     ; Implementación del ciclo While
 (define eval-while-exp
@@ -885,3 +1033,17 @@ new Animal(Mamifero, Perro)")
                            ))
       (primitiva-longitud (string-length args) ) )
     ))
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Llamado al interpretador
+(interpretador)
+
+; Ejemplos de uso con el interpretador (funcionalidad del lenguaje de programación)
+
+; Programas recursivos (cálculo del factorial de un número)
+; letrec fact(n) = if ==(n,0): 1 else (n * call( fact( (n~1) ) ) ) {call(fact(5))} Expected output: 120
+; letrec fact(n) = if ==(n,0): 1 else (n * call( fact( (n~1) ) ) ) {call(fact(5))} Expected output: 1
+
+; Programas con ciclos (cálculo del factorial de un número)
+; var (numero=5; acc=1) { for i=numero downto 1: begin { set! acc = (acc*i); set! i = (i+1); print(acc) } end end } ; Expected output: Imprime el factorial de cada número hasta 120, dado que el número final es 5
