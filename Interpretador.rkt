@@ -371,21 +371,22 @@
     ;; (https://www.w3schools.com/java/java_oop.asp)
 
     ; Declaración de una clase
-    (class-decl ("Clase" identifier "extends" identifier (arbno "field" identifier ";") (arbno method-decl)) a-class-decl)
+    (class-decl ("class" identifier "extends" identifier "{" (arbno "field" identifier ";") (arbno method-decl) "}") a-class-decl)
 
-    ; Declaración de un metodo
+    ; Declaración de un metodo de una clase.
     (method-decl ("method" identifier "(" (separated-list identifier ",") ")" "{" expression "}")a-method-decl)
 
-    ; Nueva instancia de una clase (objeto)
+    ; Creación de instancias de una clase (objs).
     (expression ("new" identifier "(" (separated-list expression ",") ")") new-object-exp)
     
-    ; Super llamado de un metodo
+    ; Super llamados a metodos.
     (expression ("super" identifier "(" (separated-list identifier ",") ")") super-call-exp)
 
-    ; Llamado de un metodo de una clase
+    ; Aplicación de metodos usando send.
     (expression ("send" expression identifier "("  (separated-list expression ",") ")") method-app-exp)
 
   ))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Construidos automáticamente:
@@ -416,6 +417,9 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Nota: Algunos de los ejemplos usados en esta sección carecen de utilidad o presentan inconsistencias.
+; La única utilidad de estos ejemplos es la de ilustrar el uso de la gramática.
 
 ; Identificador
 (scan&parse "new-identifier")
@@ -483,11 +487,14 @@
 ; Estructura begin
 (scan&parse "begin { var (x=0) { set! x = 1 }; print(x) } end")
 
+; Llamado a funciones
+(scan&parse "call (lambda (x, y) : (x+y) (1,2))")
+
 ; Imprimir en pantalla
 (scan&parse "print(ref-lst([2,-2,4,-4], 2))")
 
 ; Ciclo for
-(scan&parse "for x = 0 downto [a, b, c, d, e, f]: create-reg(head=head-tuple(tupla(2,3)), a=add1(x)) end")
+(scan&parse "for x = 0 to 3: create-reg(head=head-tuple(tupla(2,3)), a=add1(x)) end")
 
 ; Ciclo while
 (scan&parse "while set! x = 10 : begin { print(x); add1(x); print(x) } end")
@@ -505,4 +512,36 @@
 
 ; Programación Orientada a Objetos
 ; Definición de clases
-; (scan&parse "class teacher extends person () field name; field age; field experience; field courses; method initialize (nombre, edad, experiencia, cursos) { create-reg(nombre=name, edad=age, experiencia=experience, cursos=courses) }")
+(scan&parse "class Animal extends Object
+  {
+    field tipoAnimal;
+    field nombreAnimal;
+    method initialize (tipoAnimal, nombreAnimal)
+                      {
+                        block {set! self.marca = marca; set! self.numRuedas = numRuedas}
+                      }
+    method sonido (s) { s }
+  }
+
+class Perro extends Animal
+  {
+    field numeroPatas;
+    method hacerSonido(Guau)
+                      { super sonido(Guau) }
+  }
+
+new Animal(Mamifero, Perro)")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Llamado al interpretador
+(interpretador)
+
+; Ejemplos de uso con el interpretador (funcionalidad del lenguaje de programación)
+
+; Programas recursivos (cálculo del factorial de un número)
+; letrec fact(n) = if ==(n,0): 1 else (n * call( fact( (n~1) ) ) ) {call(fact(5))} Expected output: 120
+; letrec fact(n) = if ==(n,0): 1 else (n * call( fact( (n~1) ) ) ) {call(fact(5))} Expected output: 1
+
+; Programas con ciclos (cálculo del factorial de un número)
+; var (numero=5; acc=1) { for i=numero downto 1: begin { set! acc = (acc*i); set! i = (i+1); print(acc) } end end } ; Expected output: Imprime el factorial de cada número hasta 120, dado que el número final es 5
