@@ -755,3 +755,53 @@ new Animal(Mamifero, Perro)")
     (else 1)
       )
     ))
+    
+    
+    
+    ; Implementación del ciclo While
+(define eval-while-exp
+  (lambda (cond-exp body env)
+    (if (get-boolean-val (eval-expression cond-exp env))
+        (begin (eval-expression body env) (eval-while-exp cond-exp body env))
+        'fin
+        )
+    ))
+
+; Números con distintas bases: Es representado como una lista, cuya cabeza es la base del número
+(define eval-base-exp
+  (lambda (base vals env)
+    (list base vals)
+    ))
+
+; Convierte un número a base 10
+(define to-base10
+  (lambda (nums exponente base)
+    (cond
+      [(null? nums) 0] ; Si la lista de numeros es vacía, su representación será 0
+      [else
+       (+ (* (car nums) (expt base exponente)) (to-base10 (cdr nums) (+ exponente 1) base))]
+      )
+    ))
+
+; Convierte números a decimal
+(define to-decimal
+  (lambda (nums base)
+    (to-base10 nums 0 base)
+    ))
+
+; Suma de números en distinta base
+(define op-base
+  (lambda (op lst-nums-1 lst-num-2 base)
+    (cons base (list (to-base (op (to-decimal lst-nums-1 base) (to-decimal lst-num-2 base)) base ))                  )
+    ))
+
+; Convertir número a una base dada
+(define to-base
+  (lambda (numero base)
+    (cond
+      ((=(quotient numero base)0) (list numero))
+      (else
+       (cons (remainder numero base) (to-base (quotient numero base) base))
+       )
+      )
+    ))
