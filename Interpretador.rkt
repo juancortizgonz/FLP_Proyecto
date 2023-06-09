@@ -805,3 +805,83 @@ new Animal(Mamifero, Perro)")
        )
       )
     ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Evalúa una lista de operandos, aplicando eval-expression a cada elemento
+(define eval-rands
+  (lambda (rands env)
+    (map
+     (lambda (x) (eval-rand x env)) rands)
+    ))
+
+; Función auxiliar que evalua un único operando
+(define eval-rand
+  (lambda (rand env)
+    (direct-target (eval-expression rand env))
+    ))
+
+; Evalúa el operando de una primapp expression
+(define eval-primapp-exp-rand
+  (lambda (rand env)
+    (eval-expression rand env)
+    ))
+
+; Evalúa la expresión de asignación de variables locales (var, const)
+(define eval-variableLocal-exp-rands
+  (lambda (rands env)
+    (map
+     (lambda (x) (eval-variableLocal-exp-rand x env)) rands)
+    ))
+
+; Función auxiliar que evalúa el operando de forma individual
+(define eval-variableLocal-exp-rand
+  (lambda (rand env)
+    (direct-target (eval-expression rand env)) 
+    ))
+
+; Aplica la primitiva binaria (expression pŕimitiva-binaria expression)
+(define apply-bi-primitive
+  (lambda (arg1 prim arg2)
+    (cases bi-primitive prim
+       (primitiva-suma () (if (and (list? arg1) (list? arg2))
+                           (op-base + (car (cdr arg1) ) (car (cdr arg2) ) (car arg1) )
+                           (+ arg1 arg2 )
+                           ))
+      (primitiva-resta () (if (and (list? arg1) (list? arg2))
+                              (op-base - (car (cdr arg1) ) (car (cdr arg2) ) (car arg1))
+                              (- arg1 arg2 )
+                              ))
+      (primitiva-multi () (if (and (list? arg1) (list? arg2))
+                              (op-base * (car (cdr arg1) ) (car (cdr arg2) ) (car arg1))
+                              (* arg1 arg2 )
+                              ))
+      (primitiva-div () (if (and (list? arg1) (list? arg2))
+                            ((eopl:error 'deref
+                                                      "This operation is not defined for based numbers (hexadecimal)"))
+                            (/ arg1 arg2 )
+                              ))
+      (primitiva-elmodulo () (if (and (list? arg1) (list? arg2))
+                                 ((eopl:error 'deref
+                                                      "This operation is not defined for based numbers (hexadecimal)"))
+                                 (modulo arg1 arg2 )
+                                 ))
+      (primitiva-concat () (string-append arg1 arg2) )
+    )
+    ))
+
+; Aplica la primitiva unaria
+(define apply-uni-primitive
+  (lambda (prim args)
+    (cases uni-primitive prim
+      (primitiva-add1 () (if (list? args)
+                           (op-base + (car (cdr args) ) '(1) (car args) )
+                           (+ args 1 )
+                           ))
+      (primitiva-sub1 () (if (list? args)
+                           (op-base - (car (cdr args) ) '(1) (car args) )
+                           (- args 1 )
+                           ))
+      (primitiva-longitud (string-length args) ) )
+    ))
