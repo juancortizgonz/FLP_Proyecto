@@ -1035,6 +1035,38 @@ new Animal(Mamifero, Perro)")
     ))
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Obtiene el valor booleano de una expresión booleana
+(define get-boolean-val
+  (lambda (x)
+    (if (eqv? x #t)
+        #t
+        #f
+        )
+    ))
+
+; Procedimientos: Clausura. Se define el datatype de las clausuras para el manejo de procedimientos
+(define-datatype procVal procVal?
+  (cerradura
+   (lista-ID (list-of symbol?) )
+   (exp expression?)
+   (amb environment?)
+   )
+  )
+
+; apply-procedure: Evalúa el cuerpo del procedimiento con el ambiente extendido dado
+;apply-procedure: evalua el cuerpo de un procedimientos en el ambiente extendido correspondiente
+(define apply-procedure
+  (lambda (proc args)
+    (cases procVal proc
+      (cerradura (ids body env)
+               (eval-expression body (extend-env ids args env))) ; Se evalua con el ambiente extendido con los ids y los args
+      )
+    ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
 
 ; Llamado al interpretador
 (interpretador)
