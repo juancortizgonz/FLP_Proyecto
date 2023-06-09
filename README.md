@@ -12,7 +12,7 @@ Este lenguaje de programación se desarrolló como proyecto final del curso Fund
 
 -  [Juan Camilo Ortiz Gonzalez (2023921)](https://www.github.com/juancortizgonz)
 - William Velasco Muñoz ()
-- John Freddy Riascos G. ()
+- John Freddy Riascos G. (2024464)
 ## Definición de gramática y especificación léxica
 
 Este proyecto académico usa SLLGEN de Racket, para generar los tipos de datos de forma automatica, dada una especificación sintáctica (gramática) y léxica.
