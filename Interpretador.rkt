@@ -389,6 +389,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;Construidos automáticamente:
 (sllgen:make-define-datatypes lexica gramatica)
 
@@ -408,15 +409,14 @@
   (sllgen:make-string-scanner lexica gramatica))
 
 ;El Interpretador (FrontEnd + Evaluación + señal para lectura )
-#|(define interpretador
+(define interpretador
   (sllgen:make-rep-loop  "--> "
     (lambda (pgm) (eval-program  pgm))
     (sllgen:make-stream-parser
       lexica
-      gramatica)))|#
+      gramatica)))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Nota: Algunos de los ejemplos usados en esta sección carecen de utilidad o presentan inconsistencias.
 ; La única utilidad de estos ejemplos es la de ilustrar el uso de la gramática.
