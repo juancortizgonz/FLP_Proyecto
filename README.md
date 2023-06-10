@@ -11,7 +11,7 @@ Este lenguaje de programación se desarrolló como proyecto final del curso Fund
 ## Autores
 
 -  [Juan Camilo Ortiz Gonzalez (2023921)](https://www.github.com/juancortizgonz)
-- William Velasco Muñoz ()
+-  [William Velasco Muñoz (2042577)](https://github.com/WilliamVel16)
 - John Freddy Riascos G. (2024464)
 ## Definición de gramática y especificación léxica
 
