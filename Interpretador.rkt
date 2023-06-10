@@ -1153,6 +1153,66 @@ new Animal(Mamifero, Perro)")
       )
     ))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Buscar una variable en un cuerpo y modificar el valor
+(define search&UpdateValExp
+  (lambda (body)
+    ; Se debe definir un valor booleano de retorno para cada caso de expression de la gramática
+    ; Si es #t se busca y se actualiza, de otra forma no es necesario
+    (cases expression body
+      (numero-lit (num) #f)
+      (while-exp (bool-exp body) #f)
+      (texto-lit (datum) #f)
+      (var-exp (id) #f)
+      (print-exp (exp) #f)
+      (begin-exp (exp lexps) #f)
+      (base-exp(base valores)#f)
+      (primapp-un-exp (prim rand) #f)
+      (primapp-bi-exp (rand1 prim rand2) #f)
+      (boolean-expr (datum) #f)
+      (lista (list-elements) #f)    
+      (prim-list-exp (datum) #f)
+      (tupla (list-elements) #f)
+      (prim-tuple-exp (datum) #f)
+      (registro (id val rest-ids rest-vals) #f)
+      (prim-registro-exp (regs-prim) #f)
+      (if-exp (cond-exp true-exp false-exp) #f)
+      (for-exp (id start for-way end body) #f)
+      (proc-exp (ids body)
+          (search&UpdateValExp body) )
+      (app-exp (rator rands) #f)
+      (variableLocal-exp (ids vals body)
+                        (search&UpdateValExp body) ) ; Llamado recursivo
+      (constanteLocal-exp (ids vals body)
+                        (search&UpdateValExp body) )
+      (updateVar-exp (id newVal) #t)
+      (block-exp (exp exps)
+                 (if (search&UpdateValExp exp)
+                     #t
+                     (let loop ; Se debe evaluar cada expresión del bloque, porque cada expresión puede modificar variables
+                       (
+                        (exps exps)
+                        )
+                       (if (null? exps)
+                           #f ; NO hay más exps
+                           (if (search&UpdateValExp (car exps) )
+                               #t
+                               (loop (cdr exps) )
+                           )
+                       )
+                     )
+                 ))
+      (letrec-exp (proc-names ids bodies letrec-body)
+                  (search&UpdateValExp letrec-body)) ; Solo puede modificar variables en el cuerpo del letrec     
+      (new-object-exp (id args) #f)
+      (method-app-exp (obj-exp method-name rands) #f)
+      (super-call-exp (method-name rands) #f)
+    )
+  ))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Llamado al interpretador
