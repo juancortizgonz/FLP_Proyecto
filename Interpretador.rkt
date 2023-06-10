@@ -1065,8 +1065,95 @@ new Animal(Mamifero, Perro)")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Manejo de paso por referencia o por valor
 
+; Función auxiliar para la definición del paso por valor. Define que tipos de datos se pasan por valor (se usa más adelante)
+(define paso-por-valor?
+  (lambda (x)
+    (or (string? x) (boolean? x) (number? x) (procVal? x) (vector? x) ) ; Los valores que se pasan por valor
+    ))
 
+; Definición del manejo de paso por referencia
+(define ref-to-direct-target?
+  (lambda (x)
+    (and (reference? x) ; Se verifica que x sea una referencia, con el predicado del datatype
+         (cases reference x ; Se aplica cases para el tipo de dato reference con el x
+           (a-ref (pos vec)
+                  (cases target (vector-ref vec pos) ; Se verifica si x es un direct-target o no
+                    (direct-target (v)
+                                   #t)
+                    (indirect-target (v)
+                                     #f)
+                    ))
+           )
+         )
+    ))
+
+; Definición de los datatypes para target, es importante para el setteo de ref.
+(define-datatype target target?
+  (direct-target
+   (expval paso-por-valor?)) ; direct-target tiene el comportamiento de paso por valor
+  (indirect-target
+   (ref ref-to-direct-target?) ; indirect-target representa el paso por referencia
+                   ))
+
+; Definición del datatype de referencia
+(define-datatype reference reference?
+  (a-ref (position integer?)
+         (vec vector?) ; Recordar que las listas son vectores en Scheme de acuerdo a nuestra representación
+         ))
+
+; Obtiene el valor dada una referencia (independiente del paso por valor o por referencia)
+(define deref
+  (lambda (ref)
+    (cases target (primitive-deref ref)
+      (direct-target (expval) expval) ; Hace referencia a un valor nativo como un num, string o bool
+      (indirect-target (ref1)
+                       (cases target (primitive-deref ref1)
+                         (direct-target (expval) expval)
+                         (indirect-target (p)
+                                          (eopl:error 'deref
+                                                "Cannot reference to another ref: ~s" ref1)))
+                       ; El lenguaje no admite refs a otra ref, esto es dificil de manejar porque se puede volver tan grande que excede la memoria
+                       )
+      )
+    ))
+
+; Función auxiliar que modifica el vector con la posición para dereferenciar dada una ref.
+(define primitive-deref
+  (lambda (ref)
+    (cases reference ref
+      (a-ref (pos vec)
+             (vector-ref vec pos))
+      )
+    ))
+
+; Setea una referencia. Si es target directo se cambia la referencia por la expresión.
+; Si es target indirecto, se trae la referencia y se setea dicha referencia que es target directo con la expresión evaluada.
+(define setref!
+  (lambda (ref expval)
+    (let
+        (
+         (ref
+          (cases target (primitive-deref ref)
+                (direct-target (expval1) ref)
+                (indirect-target (ref1) ref1)
+            )
+              )
+         )
+      (primitive-setref! ref (direct-target expval))
+      )))
+
+; Función auxiliar para el seteo de una referencia.
+(define primitive-setref!
+  (lambda (ref val)
+    (cases reference ref
+      (a-ref (pos vec)
+             (vector-set! vec pos val))
+      )
+    ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Llamado al interpretador
 (interpretador)
