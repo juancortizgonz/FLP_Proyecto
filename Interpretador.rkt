@@ -1453,6 +1453,62 @@ new Animal(Mamifero, Perro)")
     ))
 
 
+; Metodos:
+
+; Realiza la busqueda de un metodo dado su nombre y la clase host con los args y posteriormente lo aplica.
+(define find-method-and-apply
+  (lambda (m-name host-name self args)
+    (if (eqv? host-name 'objeto)
+      (if (eqv? m-name 'init)
+          (eopl:error 'find-method-and-apply
+        "~s: The method was not provided" m-name)
+          (eopl:error 'find-method-and-apply
+        "The method with name ~s does not exist" m-name))
+      (let ((m-decl (lookup-method-decl m-name
+                      (class-name->method-decls host-name))))
+        (if (method-decl? m-decl)
+           (apply-method m-decl host-name self args)
+          (find-method-and-apply m-name 
+            (class-name->super-name host-name)
+            self args))))
+    ))
+
+(define view-object-as
+  (lambda (parts class-name)
+    (if (eqv? (part->class-name (car parts)) class-name)
+      parts
+      (view-object-as (cdr parts) class-name))))
+
+; Aplica un metodo dado. Esta función se usa desde find-method-and-apply, por lo que el llamado asegura que ya exista dcho method.
+(define apply-method
+  (lambda (m-decl host-name self args)
+    (let ((ids (method-decl->ids m-decl))
+          (body (method-decl->body m-decl))
+          (super-name (class-name->super-name host-name)))
+      (eval-expression body
+        (extend-env
+          (cons '%super (cons 'self ids))
+          (cons super-name (cons self args))
+          (build-field-env 
+            (view-object-as self host-name)))))))
+
+; Construye cada field.
+(define build-field-env
+  (lambda (parts)
+    (if (null? parts)
+      (empty-env)
+      (extend-env-refs
+        (part->field-ids (car parts))
+        (part->fields    (car parts))
+        (build-field-env (cdr parts))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Llamado al interpretador
