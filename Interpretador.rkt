@@ -1211,6 +1211,59 @@ new Animal(Mamifero, Perro)")
       (super-call-exp (method-name rands) #f)
     )
   ))
+  
+  
+  ; Manejo de ambientes
+
+; datatype del ambiente
+(define-datatype environment environment?
+  (empty-env-record)
+  (extended-env-record (syms (list-of symbol?))
+                       (vec vector?)
+                       (env environment?))
+  )
+
+(define scheme-value? (lambda (v) #t))
+
+; Define el ambiente vacío, importante para extender los envs
+(define empty-env
+  (lambda ()
+    (empty-env-record)))     
+
+; Extiende un ambiente
+(define extend-env
+  (lambda (syms vals env)
+    (extended-env-record syms (list->vector vals) env)))
+
+; Creación de un ambiente extendido para procedures rec
+(define extend-env-recursively
+  (lambda (proc-names idss bodies old-env)
+    (let ((len (length proc-names)))
+      (let ((vec (make-vector len)))
+        (let ((env (extended-env-record proc-names vec old-env)))
+          (for-each
+            (lambda (pos ids body)
+              (vector-set! vec pos (direct-target (cerradura ids body env))))
+            (iota len) idss bodies)
+          env)))))
+
+; Busca un simbolo en un ambiente.
+(define apply-env
+  (lambda (env sym)
+    (deref (apply-env-ref env sym))
+    ))
+
+; Busca un simbolo en un ambiente, si el simb es uan ref.
+(define apply-env-ref
+  (lambda (env sym)
+    (cases environment env
+      (empty-env-record () (eopl:error 'apply-env-ref "Cannot find ~s in the env" sym))
+      (extended-env-record (syms vals env)
+                           (let ((pos (rib-find-position sym syms)))
+                             (if (number? pos)
+                                 (a-ref pos vals)
+                                 (apply-env-ref env sym)))))))
+  
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
