@@ -1284,6 +1284,173 @@ new Animal(Mamifero, Perro)")
               (if (number? list-index-r)
                 (+ list-index-r 1)
                 #f))))))
+                
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Programación Orientada a Objetos
+
+(define the-class-env '())
+
+(define elaborate-class-decls!
+  (lambda (c-decls)
+    (set! the-class-env c-decls)
+    ))
+
+; Realiza una búsqueda del nombre de una clase.
+(define lookup-class
+  (lambda (name)
+    (let loop
+      (
+       (env the-class-env)
+       )
+      (cond
+        ((null? env)
+         (eopl:error 'lookup-class
+           "The class does not exist ~s" name))
+        ((eqv? (class-decl->class-name (car env)) name) (car env))
+        (else (loop (cdr env))))
+      )
+    ))
+
+; Busca un metodo en una clase.
+(define lookup-method-decl 
+  (lambda (m-name m-decls)
+    (cond
+      ((null? m-decls) #f)
+      ((eqv? m-name (method-decl->method-name (car m-decls)))
+       (car m-decls))
+      (else (lookup-method-decl m-name (cdr m-decls))))))
+
+; Obtiene el nombre de una clase, dada una declaración de clase.
+(define class-decl->class-name
+  (lambda (c-decl)
+    (cases class-decl c-decl
+      (a-class-decl (class-name super-name field-ids m-decls)
+        class-name))))
+
+; Obtiene el nombre de la clase de la que hereda (super clase), dada una declaración de clase.
+(define class-decl->super-name
+  (lambda (c-decl)
+    (cases class-decl c-decl
+      (a-class-decl (class-name super-name field-ids m-decls)
+        super-name))))
+
+; Obtiene los ids de los campos de la clase, dada una declaración de clase.
+(define class-decl->field-ids
+  (lambda (c-decl)
+    (cases class-decl c-decl
+      (a-class-decl (class-name super-name field-ids m-decls)
+        (map (lambda (id) (string->symbol (string-append "self." (symbol->string id)))) field-ids)))))
+
+; Obtiene las declaraciones de los metodos dada una declaración de clase.
+(define class-decl->method-decls
+  (lambda (c-decl)
+    (cases class-decl c-decl
+      (a-class-decl (class-name super-name field-ids m-decls)
+        m-decls))))
+
+; Dado una declaración de metodo, obtiene el nombre del mismo.
+(define method-decl->method-name
+  (lambda (md)
+    (cases method-decl md
+      (a-method-decl (method-name ids body) method-name))))
+
+; Obtienes los argumentos de un metodo de una clase.
+(define method-decl->ids
+  (lambda (md)
+    (cases method-decl md
+      (a-method-decl (method-name ids body) ids))))
+
+; Obtiene el cuerpo del metodo declarado en una clase.
+(define method-decl->body
+  (lambda (md)
+    (cases method-decl md
+      (a-method-decl (method-name ids body) body))))
+
+; Dada una lista de metodos declarados, retorna una lista de nombres de cada metodo.
+(define method-decls->method-names
+  (lambda (mds)
+    (map method-decl->method-name mds)))
+
+; Dada una parte retorna la declaración de una clase.
+(define part->class-decl
+  (lambda (part)
+    (lookup-class (part->class-name part))))
+
+; Dada una parte (implementación interna de objetos) retorna el nombre de la clase.
+(define part->class-name
+  (lambda (prt)
+    (cases part prt
+      (a-part (class-name fields)
+        class-name))))
+
+; Dada una parte retorna los campos de la clase.
+(define part->fields
+  (lambda (prt)
+    (cases part prt
+      (a-part (class-name fields)
+        fields))))
+
+; Dada una parte retorna los nombres de los campos.
+(define part->field-ids
+  (lambda (part)
+    (class-decl->field-ids (part->class-decl part))))
+
+; Dada una parte retorna las declaraciones de los metodos.
+(define part->method-decls
+  (lambda (part)
+    (class-decl->method-decls (part->class-decl part))))
+
+; Dada una parte, retorna el nombre de la super clase.
+(define part->super-name
+  (lambda (part)
+    (class-decl->super-name (part->class-decl part))))
+
+; Dado un nombre de una clase, retorna la declaración de los metodos.
+(define class-name->method-decls
+  (lambda (class-name)
+    (class-decl->method-decls (lookup-class class-name))))
+
+; Dado un nombre de una clase, retorna el nombre de la super clase o clase padre.
+(define class-name->super-name
+  (lambda (class-name)
+    (class-decl->super-name (lookup-class class-name))))
+
+; Dado un obj, retorna el nombre de la clase a la que corresponde.
+(define object->class-name
+  (lambda (parts)
+    (part->class-name (car parts))))
+
+; Una parte. Identificador: Symbol. Vector: Cada uno de los campos importantes de la declaración de una clase.
+(define-datatype part part? 
+  (a-part
+    (class-name symbol?)
+    (fields vector?)
+    )
+  )
+
+; Definición/creación de una nueva instancia de una clase (nuevo objeto).
+(define new-object
+  (lambda (class-name)
+    (if (eqv? class-name 'objeto)
+      '() ; No hay info porque extiende de la clase base (object)
+      (let
+          (
+           (c-decl (lookup-class class-name)) ; Busca la clase con el nombre
+           )
+        (cons
+          (make-first-part c-decl) ; primera parte es la declaración de la clase
+          (new-object (class-decl->super-name c-decl)))) ; Segunda parte es un llamado recursivo para almacenar info siguiendo la cadena de herencia
+      )
+    ))
+
+; Genera la primer sección de una parte.
+(define make-first-part
+  (lambda (c-decl)
+    (a-part
+      (class-decl->class-name c-decl)
+      (make-vector (length (class-decl->field-ids c-decl))(direct-target 0)))
+    ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
