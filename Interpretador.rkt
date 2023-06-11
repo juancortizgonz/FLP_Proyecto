@@ -241,6 +241,7 @@
     (expression (number) numero-lit)
     (expression (identifier) var-exp)
     (expression (txt)  texto-lit)
+    (expression (char) char-lit)
     (expression (expr-bool) boolean-expr)
 
     ; Aplicación de primitivas básicas
@@ -1167,6 +1168,7 @@ new Animal(Mamifero, Perro)")
       (numero-lit (num) #f)
       (while-exp (bool-exp body) #f)
       (texto-lit (datum) #f)
+      (char-lit (datum) #f)
       (var-exp (id) #f)
       (print-exp (exp) #f)
       (begin-exp (exp lexps) #f)
