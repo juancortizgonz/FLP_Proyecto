@@ -224,6 +224,8 @@
    (digit (arbno digit) "." (arbno digit)) number)
   (number
    ("-" digit (arbno digit) "." (arbno digit)) number)
+   (char
+   ("'" letter "'") symbol)
   ))
 
 
