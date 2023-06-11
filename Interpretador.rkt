@@ -1504,6 +1504,135 @@ new Animal(Mamifero, Perro)")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Función aux que ayuda para realizar recorridos, relacionados a vectores de paso por refs.
+(define iota
+  (lambda (end)
+    (let loop ((next 0))
+      (if (>= next end) '()
+        (cons next (loop (+ 1 next)))))))
+
+(define extend-env-refs
+  (lambda (syms vec env)
+    (extended-env-record syms vec env)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Nota: Algunos de los ejemplos usados en esta sección carecen de utilidad o presentan inconsistencias.
+; La única utilidad de estos ejemplos es la de ilustrar el uso de la gramática.
+
+; Identificador
+(scan&parse "new-identifier")
+
+; Valores booleanos
+(scan&parse "@T")
+
+; Cadenas (String)
+(scan&parse "\"Just a Text\"")
+
+; Numbers
+(scan&parse "-45.32")
+(scan&parse "24")
+
+; Aplicación de primitiva unaria
+(scan&parse "add1(45.2)")
+
+; Aplicación de primitiva binaria
+(scan&parse "(2*4)")
+
+; Primitivas de listas
+(scan&parse "empty-lst ()")
+(scan&parse "is-empty-lst?(empty-lst ())")
+(scan&parse "create-lst(2,3,4,5)")
+(scan&parse "lst?(empty-lst ())")
+(scan&parse "head-lst([3,5,8,10])")
+(scan&parse "tail-lst([-2.5,-4.6])")
+(scan&parse "append-lst([\"monday\",\"Friday\"],[\"September\",\"November\",\"December\"])")
+(scan&parse "ref-lst([@T,@F,@F,@T,@T], 3)")
+(scan&parse "set-lst([11,23,33,44,55], 1, 22)")
+
+; Primitivas de tuplas
+(scan&parse "empty-tuple ()")
+(scan&parse "is-empty-tuple?(empty-tuple ())")
+(scan&parse "create-tuple(id1, id2, id3)")
+(scan&parse "tuple?(tupla(100000,10000000000))")
+(scan&parse "head-tuple(tupla(a,b,c))")
+(scan&parse "tail-tuple(tupla(x,y,z))")
+(scan&parse "ref-tuple(tupla(@T,x,\"Text\",20), 2)")
+
+; Primitivas de registros
+(scan&parse "reg?({while-loop-1: while @T: print(@T); a-simple-text: \"Just a random text\"})")
+(scan&parse "create-reg(apple=fruit, cow=animal, green=color)")
+(scan&parse "ref-reg({a:4;b:1;c:7}, 1)")
+(scan&parse "set-reg({a:4; b:1; c:7}, 0, 1000)")
+
+; Condicional if
+(scan&parse "if <(2,3): 1 else 2")
+
+; Procedimiento
+(scan&parse "lambda (x, y) : (x + y)")
+
+; Evaluar/invocar expresiones
+(scan&parse "call (my-proc (param1, param2))")
+
+; letrec
+(scan&parse "letrec makeList (name, lastName) = lambda (n, l) : create-lst(n, l) {call (makeList(\"Juan\", \"XYZ\")) }")
+
+; Definición de constantes
+(scan&parse "final (x=0; y=1) { block{ sub1(y); if ==(x, y): @T else @F } }")
+
+; Definición de variables mutables con var
+(scan&parse "var (name=\"Proyecto\"; course=FLP) { begin { print(name); create-lst(name, course) } end }")
+
+; Estructura begin
+(scan&parse "begin { var (x=0) { set! x = 1 }; print(x) } end")
+
+; Llamado a funciones
+(scan&parse "call (lambda (x, y) : (x+y) (1,2))")
+
+; Imprimir en pantalla
+(scan&parse "print(ref-lst([2,-2,4,-4], 2))")
+
+; Ciclo for
+(scan&parse "for x = 0 to 3: create-reg(head=head-tuple(tupla(2,3)), a=add1(x)) end")
+
+; Ciclo while
+(scan&parse "while set! x = 10 : begin { print(x); add1(x); print(x) } end")
+
+; Actualización de variable con set!
+(scan&parse "begin { var (x=@T) { print(x) }; set! x = 0 } end")
+
+; Bloque de código
+(scan&parse "block { while @T : set! x = add1(x); print(\"Infinite loop block\") }")
+
+; Operaciones lógicas (booleanas)
+(scan&parse "and(@T,@T)")
+(scan&parse "or(@T,>(2,3))")
+(scan&parse "not(==(@T,True))")
+
+; Programación Orientada a Objetos
+; Definición de clases
+(scan&parse "class Animal extends Object
+  {
+    field tipoAnimal;
+    field nombreAnimal;
+    method initialize (tipoAnimal, nombreAnimal)
+                      {
+                        block {set! self.marca = marca; set! self.numRuedas = numRuedas}
+                      }
+    method sonido (s) { s }
+  }
+
+class Perro extends Animal
+  {
+    field numeroPatas;
+    method hacerSonido(Guau)
+                      { super sonido(Guau) }
+  }
+
+new Animal(Mamifero, Perro)")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 
 
