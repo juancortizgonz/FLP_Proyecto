@@ -16,7 +16,7 @@
 ; Integrantes del grupo:
 ;; Juan Camilo Ortiz G. - 2023921
 ;; William Velasco M. - 2042577
-;; John Freddy Riascos G. - #TODO
+;; John Freddy Riascos G. - 2024464
 ;
 ;; Profesor: Robinson A. Duque, Ph.D
 
@@ -419,123 +419,7 @@
       lexica
       gramatica)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; Nota: Algunos de los ejemplos usados en esta sección carecen de utilidad o presentan inconsistencias.
-; La única utilidad de estos ejemplos es la de ilustrar el uso de la gramática.
-
-; Identificador
-(scan&parse "new-identifier")
-
-; Valores booleanos
-(scan&parse "@T")
-
-; Cadenas (String)
-(scan&parse "\"Just a Text\"")
-
-; Numbers
-(scan&parse "-45.32")
-(scan&parse "24")
-
-; Aplicación de primitiva unaria
-(scan&parse "add1(45.2)")
-
-; Aplicación de primitiva binaria
-(scan&parse "(2*4)")
-
-; Primitivas de listas
-(scan&parse "empty-lst ()")
-(scan&parse "is-empty-lst?(empty-lst ())")
-(scan&parse "create-lst(2,3,4,5)")
-(scan&parse "lst?(empty-lst ())")
-(scan&parse "head-lst([3,5,8,10])")
-(scan&parse "tail-lst([-2.5,-4.6])")
-(scan&parse "append-lst([\"monday\",\"Friday\"],[\"September\",\"November\",\"December\"])")
-(scan&parse "ref-lst([@T,@F,@F,@T,@T], 3)")
-(scan&parse "set-lst([11,23,33,44,55], 1, 22)")
-
-; Primitivas de tuplas
-(scan&parse "empty-tuple ()")
-(scan&parse "is-empty-tuple?(empty-tuple ())")
-(scan&parse "create-tuple(id1, id2, id3)")
-(scan&parse "tuple?(tupla(100000,10000000000))")
-(scan&parse "head-tuple(tupla(a,b,c))")
-(scan&parse "tail-tuple(tupla(x,y,z))")
-(scan&parse "ref-tuple(tupla(@T,x,\"Text\",20), 2)")
-
-; Primitivas de registros
-(scan&parse "reg?({while-loop-1: while @T: print(@T); a-simple-text: \"Just a random text\"})")
-(scan&parse "create-reg(apple=fruit, cow=animal, green=color)")
-(scan&parse "ref-reg({a:4;b:1;c:7}, 1)")
-(scan&parse "set-reg({a:4; b:1; c:7}, 0, 1000)")
-
-; Condicional if
-(scan&parse "if <(2,3): 1 else 2")
-
-; Procedimiento
-(scan&parse "lambda (x, y) : (x + y)")
-
-; Evaluar/invocar expresiones
-(scan&parse "call (my-proc (param1, param2))")
-
-; letrec
-(scan&parse "letrec makeList (name, lastName) = lambda (n, l) : create-lst(n, l) {call (makeList(\"Juan\", \"XYZ\")) }")
-
-; Definición de constantes
-(scan&parse "final (x=0; y=1) { block{ sub1(y); if ==(x, y): @T else @F } }")
-
-; Definición de variables mutables con var
-(scan&parse "var (name=\"Proyecto\"; course=FLP) { begin { print(name); create-lst(name, course) } end }")
-
-; Estructura begin
-(scan&parse "begin { var (x=0) { set! x = 1 }; print(x) } end")
-
-; Llamado a funciones
-(scan&parse "call (lambda (x, y) : (x+y) (1,2))")
-
-; Imprimir en pantalla
-(scan&parse "print(ref-lst([2,-2,4,-4], 2))")
-
-; Ciclo for
-(scan&parse "for x = 0 to 3: create-reg(head=head-tuple(tupla(2,3)), a=add1(x)) end")
-
-; Ciclo while
-(scan&parse "while set! x = 10 : begin { print(x); add1(x); print(x) } end")
-
-; Actualización de variable con set!
-(scan&parse "begin { var (x=@T) { print(x) }; set! x = 0 } end")
-
-; Bloque de código
-(scan&parse "block { while @T : set! x = add1(x); print(\"Infinite loop block\") }")
-
-; Operaciones lógicas (booleanas)
-(scan&parse "and(@T,@T)")
-(scan&parse "or(@T,>(2,3))")
-(scan&parse "not(==(@T,True))")
-
-; Programación Orientada a Objetos
-; Definición de clases
-(scan&parse "class Animal extends Object
-  {
-    field tipoAnimal;
-    field nombreAnimal;
-    method initialize (tipoAnimal, nombreAnimal)
-                      {
-                        block {set! self.marca = marca; set! self.numRuedas = numRuedas}
-                      }
-    method sonido (s) { s }
-  }
-
-class Perro extends Animal
-  {
-    field numeroPatas;
-    method hacerSonido(Guau)
-                      { super sonido(Guau) }
-  }
-
-new Animal(Mamifero, Perro)")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Ambiente inicial
 (define init-env
@@ -543,6 +427,7 @@ new Animal(Mamifero, Perro)")
     (extend-env
      '(x)
      (list (direct-target 1))
+           
      (empty-env))))
 
 ; Comienzo de definición del interprete
@@ -711,36 +596,25 @@ new Animal(Mamifero, Perro)")
                              (map (lambda (element) (eval-expression element env) ) vals) env)) ; Luego evalua cada elemento de la lista vals, y ambos argumentos se los pasa a eval-base-exp
     ; POO
     (new-object-exp (class-name rands)
-        (let
-            (
-             (args (eval-rands rands env))
-              (obj (new-object class-name))
-              )
+        (let ((args (eval-rands rands env))
+              (obj (new-object class-name)))
           (find-method-and-apply 'init class-name obj args)
           obj
           ))
 
     ; Invocación de metodos con send
     (method-app-exp (obj-exp method-name rands)
-        (let
-            (
-             (args (eval-rands rands env)) ; Evalúa los argumentos
-             (obj (eval-expression obj-exp env)) ; Evalúa el objeto como una expresión
-              )
-          (find-method-and-apply ; Busca el metodo y lo aplica
-            method-name (object->class-name obj) obj args))
-        )
+        (let ((args (eval-rands rands env))
+              (obj (eval-expression obj-exp env)))
+          (find-method-and-apply
+            method-name (object->class-name obj) obj args)))
 
     ; Llamado con super
     (super-call-exp (method-name rands)
-        (let
-            (
-             (args (eval-rands rands env))
-             (obj (apply-env env 'self))
-              )
+        (let ((args (eval-rands rands env))
+              (obj (apply-env env 'self)))
           (find-method-and-apply
-            method-name (apply-env env '%super) obj args))
-        )
+            method-name (apply-env env '%super) obj args)))
     (else 1)
       )
     ))
@@ -963,15 +837,12 @@ new Animal(Mamifero, Perro)")
 ; Evalúa una lista de operandos, aplicando eval-expression a cada elemento
 (define eval-rands
   (lambda (rands env)
-    (map
-     (lambda (x) (eval-rand x env)) rands)
-    ))
+    (map (lambda (x) (eval-rand x env)) rands)))
 
 ; Función auxiliar que evalua un único operando
 (define eval-rand
   (lambda (rand env)
-    (direct-target (eval-expression rand env))
-    ))
+    (direct-target (eval-expression rand env))))
 
 ; Evalúa el operando de una primapp expression
 (define eval-primapp-exp-rand
@@ -1071,90 +942,65 @@ new Animal(Mamifero, Perro)")
 ; Manejo de paso por referencia o por valor
 
 ; Función auxiliar para la definición del paso por valor. Define que tipos de datos se pasan por valor (se usa más adelante)
-(define paso-por-valor?
+(define expval?
   (lambda (x)
-    (or (string? x) (boolean? x) (number? x) (procVal? x) (vector? x) ) ; Los valores que se pasan por valor
-    ))
+    (or (number? x) (procVal? x) (string? x) (vector? x) (boolean? x) (list? x))))
 
 ; Definición del manejo de paso por referencia
 (define ref-to-direct-target?
   (lambda (x)
-    (and (reference? x) ; Se verifica que x sea una referencia, con el predicado del datatype
-         (cases reference x ; Se aplica cases para el tipo de dato reference con el x
+    (and (reference? x)
+         (cases reference x
            (a-ref (pos vec)
-                  (cases target (vector-ref vec pos) ; Se verifica si x es un direct-target o no
-                    (direct-target (v)
-                                   #t)
-                    (indirect-target (v)
-                                     #f)
-                    ))
-           )
-         )
-    ))
+                  (cases target (vector-ref vec pos)
+                    (direct-target (v) #t)
+                    (indirect-target (v) #f)))))))
+
 
 ; Definición de los datatypes para target, es importante para el setteo de ref.
 (define-datatype target target?
-  (direct-target
-   (expval paso-por-valor?)) ; direct-target tiene el comportamiento de paso por valor
-  (indirect-target
-   (ref ref-to-direct-target?) ; indirect-target representa el paso por referencia
-                   ))
+  (direct-target (expval expval?))
+  (indirect-target (ref ref-to-direct-target?)))
 
 ; Definición del datatype de referencia
 (define-datatype reference reference?
   (a-ref (position integer?)
-         (vec vector?) ; Recordar que las listas son vectores en Scheme de acuerdo a nuestra representación
-         ))
+         (vec vector?)))
 
 ; Obtiene el valor dada una referencia (independiente del paso por valor o por referencia)
 (define deref
   (lambda (ref)
     (cases target (primitive-deref ref)
-      (direct-target (expval) expval) ; Hace referencia a un valor nativo como un num, string o bool
+      (direct-target (expval) expval)
       (indirect-target (ref1)
                        (cases target (primitive-deref ref1)
                          (direct-target (expval) expval)
                          (indirect-target (p)
                                           (eopl:error 'deref
-                                                "Cannot reference to another ref: ~s" ref1)))
-                       ; El lenguaje no admite refs a otra ref, esto es dificil de manejar porque se puede volver tan grande que excede la memoria
-                       )
-      )
-    ))
+                                                      "Cannot reference to another ref: ~s" ref1)))))))
 
 ; Función auxiliar que modifica el vector con la posición para dereferenciar dada una ref.
 (define primitive-deref
   (lambda (ref)
     (cases reference ref
       (a-ref (pos vec)
-             (vector-ref vec pos))
-      )
-    ))
+             (vector-ref vec pos)))))
 
 ; Setea una referencia. Si es target directo se cambia la referencia por la expresión.
 ; Si es target indirecto, se trae la referencia y se setea dicha referencia que es target directo con la expresión evaluada.
 (define setref!
   (lambda (ref expval)
-    (let
-        (
-         (ref
-          (cases target (primitive-deref ref)
+    (let ((ref (cases target (primitive-deref ref)
                 (direct-target (expval1) ref)
-                (indirect-target (ref1) ref1)
-            )
-              )
-         )
-      (primitive-setref! ref (direct-target expval))
-      )))
+                (indirect-target (ref1) ref1))))
+      (primitive-setref! ref (direct-target expval)))))
 
 ; Función auxiliar para el seteo de una referencia.
 (define primitive-setref!
   (lambda (ref val)
     (cases reference ref
       (a-ref (pos vec)
-             (vector-set! vec pos val))
-      )
-    ))
+             (vector-set! vec pos val)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1297,24 +1143,18 @@ new Animal(Mamifero, Perro)")
 
 (define elaborate-class-decls!
   (lambda (c-decls)
-    (set! the-class-env c-decls)
-    ))
+    (set! the-class-env c-decls)))
 
 ; Realiza una búsqueda del nombre de una clase.
 (define lookup-class
   (lambda (name)
-    (let loop
-      (
-       (env the-class-env)
-       )
+    (let loop ((env the-class-env))
       (cond
         ((null? env)
          (eopl:error 'lookup-class
-           "The class does not exist ~s" name))
+           "Class not known ~s" name))
         ((eqv? (class-decl->class-name (car env)) name) (car env))
-        (else (loop (cdr env))))
-      )
-    ))
+        (else (loop (cdr env)))))))
 
 ; Busca un metodo en una clase.
 (define lookup-method-decl 
@@ -1324,6 +1164,7 @@ new Animal(Mamifero, Perro)")
       ((eqv? m-name (method-decl->method-name (car m-decls)))
        (car m-decls))
       (else (lookup-method-decl m-name (cdr m-decls))))))
+
 
 ; Obtiene el nombre de una clase, dada una declaración de clase.
 (define class-decl->class-name
@@ -1376,11 +1217,6 @@ new Animal(Mamifero, Perro)")
   (lambda (mds)
     (map method-decl->method-name mds)))
 
-; Dada una parte retorna la declaración de una clase.
-(define part->class-decl
-  (lambda (part)
-    (lookup-class (part->class-name part))))
-
 ; Dada una parte (implementación interna de objetos) retorna el nombre de la clase.
 (define part->class-name
   (lambda (prt)
@@ -1399,6 +1235,11 @@ new Animal(Mamifero, Perro)")
 (define part->field-ids
   (lambda (part)
     (class-decl->field-ids (part->class-decl part))))
+
+; Dada una parte retorna la declaración de una clase.
+(define part->class-decl
+  (lambda (part)
+    (lookup-class (part->class-name part))))
 
 ; Dada una parte retorna las declaraciones de los metodos.
 (define part->method-decls
@@ -1429,32 +1270,24 @@ new Animal(Mamifero, Perro)")
 (define-datatype part part? 
   (a-part
     (class-name symbol?)
-    (fields vector?)
-    )
-  )
+    (fields vector?)))
 
 ; Definición/creación de una nueva instancia de una clase (nuevo objeto).
 (define new-object
   (lambda (class-name)
     (if (eqv? class-name 'objeto)
       '() ; No hay info porque extiende de la clase base (object)
-      (let
-          (
-           (c-decl (lookup-class class-name)) ; Busca la clase con el nombre
-           )
+      (let ((c-decl (lookup-class class-name))) ; Busca la clase con el nombre
         (cons
           (make-first-part c-decl) ; primera parte es la declaración de la clase
-          (new-object (class-decl->super-name c-decl)))) ; Segunda parte es un llamado recursivo para almacenar info siguiendo la cadena de herencia
-      )
-    ))
+          (new-object (class-decl->super-name c-decl))))))) ; Segunda parte es un llamado recursivo para almacenar info siguiendo la cadena de herencia
 
 ; Genera la primer sección de una parte.
 (define make-first-part
   (lambda (c-decl)
     (a-part
       (class-decl->class-name c-decl)
-      (make-vector (length (class-decl->field-ids c-decl))(direct-target 0)))
-    ))
+      (make-vector (length (class-decl->field-ids c-decl))(direct-target 0)))))
 
 
 ; Metodos:
@@ -1465,17 +1298,17 @@ new Animal(Mamifero, Perro)")
     (if (eqv? host-name 'objeto)
       (if (eqv? m-name 'init)
           (eopl:error 'find-method-and-apply
-        "~s: The method was not provided" m-name)
+        "~s method was not provided" m-name)
           (eopl:error 'find-method-and-apply
-        "The method with name ~s does not exist" m-name))
+        "No method for name ~s" m-name))
       (let ((m-decl (lookup-method-decl m-name
                       (class-name->method-decls host-name))))
         (if (method-decl? m-decl)
            (apply-method m-decl host-name self args)
           (find-method-and-apply m-name 
             (class-name->super-name host-name)
-            self args))))
-    ))
+            self args))))))
+
 
 (define view-object-as
   (lambda (parts class-name)
