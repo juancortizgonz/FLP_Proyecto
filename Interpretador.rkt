@@ -16,7 +16,7 @@
 ; Integrantes del grupo:
 ;; Juan Camilo Ortiz G. - 2023921
 ;; William Velasco M. - 2042577
-;; John Freddy Riascos G. - 2024464
+;; Jhon Freddy Riascos G. - 2024464
 ;
 ;; Profesor: Robinson A. Duque, Ph.D
 
