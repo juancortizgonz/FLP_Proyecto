@@ -16,7 +16,7 @@
 ; Integrantes del grupo:
 ;; Juan Camilo Ortiz G. - 2023921
 ;; William Velasco M. - 2042577
-;; Jhon Fredy Riascos G. - 2024464
+;; John Freddy Riascos G. - 2024464
 ;
 ;; Profesor: Robinson A. Duque, Ph.D
 
@@ -30,9 +30,9 @@
 ;;                (un-programa-oo (class-decls body))
 ;; <expresion> ::= <identificador>
 ;;                 (id-exp (id))
-;;             ::= var <identificador> = <expresion> {<identificador> = <expresion>}*(,) in <expresion>
+;;             ::= var "(" <identificador> = <expresion> {<identificador> = <expresion>}*(,) ")" "{" <expresion> "}"
 ;;                 (var-exp (ids vals body))
-;;             ::= const <identificador> = <expresion> {<identificador> = <expresion>}*(,) in <expresion>
+;;             ::= final "(" <identificador> = <expresion> {<identificador> = <expresion>}*(,) ")" "{" <expresion> "}"
 ;;                 (const-exp (ids vals body))
 ;;             ::= rec {<identificador> ({<identificador>)}*(,)) = <expresion>}* in <expresion>
 ;;                 (rec-exp (id params val body))
@@ -54,13 +54,13 @@
 ;;                 (register-exp (log))
 ;;             ::= <expr-bool>
 ;;                 (boolean-app-exp (expr-bool))
-;;             ::= begin {<expresion>}+(;) end
+;;             ::= begin "{" {<expresion>}+(;) "}" end
 ;;                 (begin-exp (exps))
-;;             ::= if <expr-bool> then <expresion> [ else <expresion> ] end
+;;             ::= if <expr-bool> ":" <expresion> else <expresion>
 ;;                 (if-exp (cond-exp true-exp false-exp))
-;;             ::= while <expr-bool> do <expresion> done
+;;             ::= while <expr-bool> ":" <expresion>
 ;;                 (while-exp (cond-exp body))
-;;             ::= for <identificador> in {<lista> | <tupla> | <registro>} do <expresion> done
+;;             ::= for <identificador> "=" <expression> <for-way> <expression> ":" <expresion> "end"
 ;;                 (for-exp (id data-struct body))
 ;;             ::= <numero-entero> <primitiva-binaria-enteros> <numero-entero>
 ;;                 (prim-bin-int-exp (num1 prim-bin-int num2))
@@ -93,13 +93,13 @@
 ;;                 (prim-un-string-exp (str))
 ;;             ::= <primitiva-binaria-cadenas> ( <cadena>, <cadena> )
 ;;                 (prim-bin-string-exp (str1 str2))
-;;             ::= proc ( {<identificador>}*(,) ) <expresion>
+;;             ::= "lambda" ( {<identificador>}*(,) ) ":" <expresion>
 ;;                 (proc-exp (ids body))
 ;;             ::= ( <expresion> {<expresion>}* )
 ;;                 (app-exp (rator rands))
 ;;             ::= letrec {<identificador> ( {<identificador>}*(,) ) = <expresion>}* in <expresion>
 ;;                 (letrec-exp (proc-names ids bodies letrec-body))
-;;             ::= set <identificador> = <expresion>
+;;             ::= "set!" <identificador> = <expresion>
 ;;                 (varassign-exp (ids rhs-exp))
 ;;             ::= new <identificador> ( {<expresion>}*(,) )
 ;;                 (new-object-exp (class-name rands))
